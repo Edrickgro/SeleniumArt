@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="styles.css">
+
+    <title>Texture Extractor</title>
+
+</head>
+<body>
+
+    <div id = "main-container">
+
+        <div class = "algorithm-container">
+            <p>Uploaded Image</p>
+            <canvas id="image-canvas"></canvas>
+            <input type="file" id="file-input" name="file" />
+        </div>
+
+        <div class = "algorithm-container">
+            <p>LBP Image</p>
+            <canvas id="LBP-canvas"></canvas>
+            <button id="LBP-button">Apply LBP</button>    
+        </div>
+
+        <div class = "algorithm-container">
+
+            <p>Canny Image</p>
+            <canvas id="canny-canvas"></canvas>
+            <input type="range" id="canny-min-slider" min="0" max="500" value="50" step="10" />
+            <p>Min: <output id="canny-min-output"></output></p>
+            <input type="range" id="canny-max-slider" min="10" max="500" value="100" step="10" />
+            <p>Max: <output id="canny-max-output"></output></p>  
+            <button id="canny-button">Apply Canny</button>
+            
+        </div>
+
+
+        <div class = "algorithm-container">
+            <p>Objects Image</p>
+            <canvas id="objects-canvas"></canvas>
+            <p>Background Threshold (0 - 100)</p>
+            <input type="number" id="objects-threshold-button"  min="0" max="100">
+            <p>Object Detection Threshold (0 - 100)</p>
+            <input type="number" id="objects-detect-threshold-button"  min="0" max="100">
+            <p>Object Pixel Collection Threshold (0 - 20000)</p>
+            <input type="number" id="objects-detect-pixel-threshold-button"  min="0" max="20000">
+            <button id = "objects-detect-button">Detect Objects</button>
+        </div>
+
+        <div class = "algorithm-container">
+            <p>Kmeans Image</p>
+            <canvas id="kmeans-canvas"></canvas>
+            <p>Num colors (1 - 200)</p>
+            <input type="number" id="kmeans-num-colors"  min="1" max="200">
+            <button id = "kmeans-button">Apply Kmeans</button>
+        </div>
+
+
+        <div class = "algorithm-container">
+            <p>Generate Image</p>
+            <canvas id="generate-canvas"></canvas>
+            <button id = "generate-button">Generate</button>
+        </div>
+
+
+
+
+    </div>
+
+    <script>var exports = {};</script>
+
+
+    <canvas id="dummy-canvas"></canvas>
+    <canvas id="hidden-canvas"></canvas>
+
+
+
+    <script src = "cv.js"></script>
+    <script src = "configure.js"></script>
+    <script src = "LBP.js"></script>
+    
+    <script src="script.js"></script>
+
+   
+
+   
+    
+    <!-- <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script> -->
+
+</body>
+</html>
