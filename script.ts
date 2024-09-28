@@ -23,26 +23,29 @@
    let objectsThresholdButton = <HTMLButtonElement> document.getElementById("objects-threshold-button");
    let objectsDetectThreshold = <HTMLButtonElement> document.getElementById("objects-detect-threshold-button");
    let objectsDetectPixelButton = <HTMLButtonElement> document.getElementById("objects-detect-pixel-threshold-button");
+   let strict = <HTMLInputElement> document.getElementById("strict");
 
    let generateButton = <HTMLButtonElement> document.getElementById("generate-button");
    let generateCanvas = <HTMLCanvasElement> document.getElementById("generate-canvas");
 
    let kmeansNumColors = <HTMLInputElement> document.getElementById("kmeans-num-colors");
+
+   let varianceInput = <HTMLInputElement> document.getElementById("variance-input");
+   let numColorBoxes = <HTMLInputElement> document.getElementById("num-color-boxes");
+   let objectPixelThreshold = <HTMLInputElement> document.getElementById("object-pixel-threshold");
+   let factor = <HTMLInputElement> document.getElementById("factor");
  
    let settings_valid = true;
    
-   let min_set = 0; 
-   let max_set = 100;
-
    let objects_distance_threshold = 1;
    let objects_detect_distance_threshold = 1;
    let objects_detect_pixel_threshold = 0;
 
    let kmeans_num_colors = 1;
 
-   let allow_overlap = false;
+   let allow_overlap = true;
    let is_repeated = false; 
-   let object_variance = 0;
+//    let object_variance = 5;
 
    let buttonWorker = <HTMLButtonElement> document.getElementById("worker-button");
    let kButton = <HTMLButtonElement> document.getElementById("k-button");
@@ -52,32 +55,37 @@
 
    const cv = new CV();
 
-   objectsThresholdButton.addEventListener("input", (e) => {
-    objects_distance_threshold = e.target.value; 
+//    objectsThresholdButton.addEventListener("input", (e) => {
+//     objects_distance_threshold = e.target.value; 
 
-   })
-   objectsDetectThreshold.addEventListener("input", (e) => {
-    objects_detect_distance_threshold = e.target.value;
-   })
-   objectsDetectPixelButton.addEventListener("input", (e)=>{
-    objects_detect_pixel_threshold = e.target.value;
-   });
+//    })
+//    objectsDetectThreshold.addEventListener("input", (e) => {
+//     objects_detect_distance_threshold = e.target.value;
+//    })
+//    objectsDetectPixelButton.addEventListener("input", (e)=>{
+//     objects_detect_pixel_threshold = e.target.value;
+//    });
 
-   kmeansNumColors.addEventListener("input", (e)=>{
-    kmeans_num_colors = e.target.value;
-   })
+//    kmeansNumColors.addEventListener("input", (e)=>{
+//     kmeans_num_colors = e.target.value;
+//    })
 
 
    objectsButton.addEventListener("click", () => objectsClick(), false); 
 
    async function objectsClick(){
 
+        let objects_distance_threshold = parseInt(objectsThresholdButton.value);
+        let objects_detect_distance_threshold = parseInt(objectsDetectThreshold.value);
+        let objects_detect_pixel_threshold = parseInt(objectsDetectPixelButton.value);
+        let strict_value = parseInt(strict.value); 
+
         objectsCanvas.style.animationPlayState = "running";
         
         const imageData = cannyCanvas.getContext("2d").getImageData(0,0,cannyCanvas.width, cannyCanvas.height).data;
         await cv.load();
         const processedImage = await 
-        cv.imageProcessing("fill", [imageData, image_width, objects_distance_threshold, objects_detect_distance_threshold, objects_detect_pixel_threshold]);
+        cv.imageProcessing("fill", [imageData, image_width, objects_distance_threshold, objects_detect_distance_threshold, objects_detect_pixel_threshold, strict_value]);
 
         dummyctx.putImageData(processedImage.data.payload[0], 0, 0);
 
@@ -93,11 +101,19 @@
 
    }
 
+//    kmeansNumColors.addEventListener("input", (e)=>{
+//     kmeans_num_colors = e.target.value;
+//    })
+
   
 
    kmeansButton.addEventListener("click", () => kmeansClick(), false);
 
     async function kmeansClick(){
+
+
+        kmeans_num_colors = parseInt(kmeansNumColors.value);
+        
 
         kmeansCanvas.style.animationPlayState = "running";
 
@@ -123,6 +139,8 @@
     cannyButton.addEventListener("click", () => cannyClick(), false);
 
     async function cannyClick(){
+        let min_set = parseInt(cannyMinSlider.value);
+        let max_set = parseInt(cannyMaxSlider.value);
         if(min_set < max_set){
 
             cannyCanvas.style.animationPlayState = "running";
@@ -149,6 +167,10 @@
     async function generateClick(){
 
         generateCanvas.style.animationPlayState = "running";
+        let object_variance = parseInt(varianceInput.value); 
+        let texture_threshold = parseInt(numColorBoxes.value);
+        let object_pixel_threshold = parseInt(objectPixelThreshold.value);
+        let factor_value = parseInt(factor.value);
         //const objects_identified;
         const cannyData = cannyCanvas.getContext("2d").getImageData(0,0,cannyCanvas.width, cannyCanvas.height).data;
         const LBPData = LBPCanvas.getContext("2d").getImageData(0,0,LBPCanvas.width, LBPCanvas.height).data;
@@ -157,11 +179,19 @@
         await cv.load();
 
         const processedImage = await 
-        cv.imageProcessing("generate", [cannyData, LBPData, kMeansData, objects_identified, allow_overlap, is_repeated, object_variance]);
+        cv.imageProcessing("generate", 
+            [cannyData, LBPData, kMeansData, objects_identified, allow_overlap, is_repeated, object_variance, image_width, texture_threshold, object_pixel_threshold, factor_value]);
 
-        
+
+        dummyctx.putImageData(processedImage.data.payload[0], 0, 0);
+
+        generateCanvas.height = image_height; 
+        generateCanvas.width = image_width; 
+
+        generateCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, generateCanvas.width, generateCanvas.height);
 
 
+        generateCanvas.style.animationPlayState = "paused";
 
 
 
@@ -170,13 +200,11 @@
 
    cannyMaxSlider.addEventListener("input", (e) =>{
     cannyMaxOutput.textContent = e.target.value;
-    max_set = parseInt(e.target.value);
     
    });
 
    cannyMinSlider.addEventListener("input", (e) =>{
     cannyMinOutput.textContent = e.target.value;
-    min_set = parseInt(e.target.value);
     
    });
 

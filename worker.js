@@ -20,47 +20,84 @@ function objectsFill({ msg, payload }) {
     globalData = payload[0];
     let distanceThreshold = payload[2];
     let object_size_threshold = payload[4];
+    let strict_value = payload[5];
     imageHeight = (data.length / 4) / imageWidth;
     // let q = [];
     // q.push({edge: data[0] > 0 , visited: false, index: 0});
     let pixels = [];
+    let rSum = 0;
+    let gSum = 0;
+    let bSum = 0;
     for (let i = 0; i < data.length / 4; i++) {
         pixels.push({ index: i, visited: false, background: false });
     }
     //FIRST ROW
-    for (let j = 0; j < imageWidth; j++) {
-        let pixelObject = pixels[j];
-        pixelObject.background = true;
-        if (pixelObject.visited)
-            continue;
-        let dataIndex = (j) * 4;
-        fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+    if (strict_value) {
+        for (let j = 0; j < imageWidth; j++) {
+            let dataIndex = (j) * 4;
+            let objectData = data[dataIndex];
+            let pixelObject = pixels[j];
+            pixelObject.background = true;
+            if (pixelObject.visited)
+                continue;
+            fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+        }
+        //bottom row
+        for (let j = 1; j < imageWidth + 1; j++) {
+            let pixelObject = pixels[pixels.length - j];
+            pixelObject.background = true;
+            if (pixelObject.visited)
+                continue;
+            let dataIndex = (pixels.length - j) * 4;
+            fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+        }
+        for (let j = [0]; j < imageHeight; j++) {
+            let pixelObject = pixels[imageWidth * j];
+            pixelObject.background = true;
+            if (pixelObject.visited)
+                continue;
+            let dataIndex = (imageWidth * j) * 4;
+            fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+        }
+        for (let j = 1; j < imageHeight + 1; j++) {
+            let pixelObject = pixels[(imageWidth * j) - 1];
+            pixelObject.background = true;
+            if (pixelObject.visited)
+                continue;
+            let dataIndex = ((imageWidth * j) - 1) * 4;
+            fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+        }
     }
-    //bottom row
-    for (let j = 1; j < imageWidth + 1; j++) {
-        let pixelObject = pixels[pixels.length - j];
-        pixelObject.background = true;
-        if (pixelObject.visited)
-            continue;
-        let dataIndex = (pixels.length - j) * 4;
-        fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
-    }
-    for (let j = [0]; j < imageHeight; j++) {
-        let pixelObject = pixels[imageWidth * j];
-        pixelObject.background = true;
-        if (pixelObject.visited)
-            continue;
-        let dataIndex = (imageWidth * j) * 4;
-        fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
-    }
-    for (let j = 1; j < imageHeight + 1; j++) {
-        let pixelObject = pixels[(imageWidth * j) - 1];
-        pixelObject.background = true;
-        if (pixelObject.visited)
-            continue;
-        let dataIndex = ((imageWidth * j) - 1) * 4;
-        fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
-    }
+    // for(let j = 0; j < imageWidth; j++){
+    //     let dataIndex = (j) * 4;
+    //     let objectData = data[dataIndex];
+    //     let pixelObject = pixels[j];
+    //     pixelObject.background = true; 
+    //     if(pixelObject.visited) continue;
+    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+    // }
+    // //bottom row
+    // for(let j = 1; j < imageWidth + 1; j++){
+    //     let pixelObject = pixels[pixels.length - j];
+    //     pixelObject.background = true; 
+    //     if(pixelObject.visited) continue;
+    //     let dataIndex = (pixels.length - j) * 4;
+    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+    // }
+    // for(let j = [0]; j < imageHeight; j++){
+    //     let pixelObject = pixels[imageWidth * j];
+    //     pixelObject.background = true; 
+    //     if(pixelObject.visited) continue;
+    //     let dataIndex = (imageWidth * j) * 4;
+    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+    // }
+    // for(let j = 1; j < imageHeight + 1; j++){
+    //     let pixelObject = pixels[(imageWidth * j) - 1];
+    //     pixelObject.background = true; 
+    //     if(pixelObject.visited) continue;
+    //     let dataIndex = ((imageWidth * j) - 1) * 4;
+    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
+    // }
     //DETECTING OBJECTS NOW
     distanceThreshold = payload[3];
     let identified_objects = [];
@@ -88,7 +125,7 @@ function objectsFill({ msg, payload }) {
         }
     }
     const clampedArray = new ImageData(data, imageWidth);
-    postMessage({ msg, payload: clampedArray });
+    postMessage({ msg, payload: [clampedArray, identified_objects] });
 }
 function validPixel(row, col) {
     let validRow = row >= 0 && row < imageHeight;
@@ -190,6 +227,161 @@ function pixelFillValid(data, dataIndex, distanceThreshold, axis) {
     // }
     return !(calculatedDistance <= distanceThreshold);
 }
+function genRandomObjectVariance(direction, dis, row, column) {
+    switch (direction) {
+        case "TopLeft":
+            return validPixel(row - dis, column - dis) ? ((row - dis) * imageWidth + (column - dis)) * 4 : -1;
+        case "TopMid":
+            return validPixel(row - dis, column) ? ((row - dis) * imageWidth + (column)) * 4 : -dis;
+        case "TopRight":
+            return validPixel(row - dis, column + dis) ? ((row - dis) * imageWidth + (column + dis)) * 4 : -1;
+        case "Right":
+            return validPixel(row, column + dis) ? ((row) * imageWidth + (column + dis)) * 4 : -dis;
+        case "BottomRight":
+            return validPixel(row + dis, column + dis) ? ((row + dis) * imageWidth + (column + dis)) * 4 : -1;
+        case "BottomMid":
+            return validPixel(row + dis, column) ? ((row + dis) * imageWidth + (column)) * 4 : -dis;
+        case "BottomLeft":
+            return validPixel(row + dis, column - dis) ? ((row + dis) * imageWidth + (column - dis)) * 4 : -1;
+        case "Left":
+            return validPixel(row, column - dis) ? ((row) * imageWidth + (column - dis)) * 4 : -1;
+        default:
+            break;
+    }
+}
+function generateProcess({ msg, payload }) {
+    //cannyData, LBPData, kMeansData, objects_identified, allow_overlap, is_repeated, object_variance
+    const cannyData = payload[0];
+    const LBPData = payload[1];
+    const kMeansData = payload[2];
+    const objects_identified = payload[3];
+    const allow_overlap = payload[4];
+    const is_repeated = payload[5];
+    const object_variance = payload[6];
+    const maxBoost = payload[8];
+    const object_pixel_threshold = payload[9];
+    const factor_value = payload[10];
+    let color_box_values = [];
+    imageWidth = payload[7];
+    imageHeight = (cannyData.length / 4) / imageWidth;
+    let image_data = new Uint8ClampedArray(cannyData.length);
+    const neighbors = ["TopLeft", "TopMid", "TopRight", "Right", "BottomRight", "BottomMid", "BottomLeft", "Left"];
+    let unique_colors = {};
+    let max_color_count = 0;
+    let most_common_color = [0, 0, 0];
+    for (let i = 0; i < kMeansData.length; i++) {
+        let r = kMeansData[i];
+        let g = kMeansData[i + 1];
+        let b = kMeansData[i + 2];
+        let a = 255;
+        let color = 0;
+        color |= a << 24;
+        color |= r << 16;
+        color |= g << 8;
+        color |= b;
+        if (unique_colors[color] == undefined) {
+            unique_colors[color] = 1;
+        }
+        else {
+            unique_colors[color] = unique_colors[color] + 1;
+            if (unique_colors[color] > max_color_count) {
+                max_color_count = unique_colors[color];
+                most_common_color = [r, g, b];
+            }
+        }
+    }
+    let original_object_pixels = new Uint8ClampedArray((cannyData.length) / 4);
+    for (let i = 0; i < objects_identified.length; i++) {
+        let object = objects_identified[i];
+        for (let j = 0; j < object.length; j++) {
+            let data_index = object[j];
+            image_data[data_index] = most_common_color[0];
+            image_data[data_index + 1] = most_common_color[1];
+            image_data[data_index + 2] = most_common_color[2];
+            image_data[data_index + 3] = 255;
+        }
+    }
+    for (let i = 0; i < objects_identified.length; i++) {
+        let object = objects_identified[i];
+        let randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+        let distance = Math.floor(Math.random() * (object_variance));
+        for (let j = 0; j < object.length; j++) {
+            let data_index = object[j];
+            if (object_variance) {
+                let row = Math.floor((object[j] / 4) / imageWidth);
+                let column = (object[j] / 4) - (row * imageWidth);
+                if (object.length < object_pixel_threshold) {
+                    data_index = genRandomObjectVariance(randomNeighbor, parseInt(distance / factor_value), row, column);
+                }
+                else {
+                    data_index = genRandomObjectVariance(randomNeighbor, distance, row, column);
+                }
+                original_object_pixels[object[j] / 4] = 1;
+                original_object_pixels[data_index / 4] = 0;
+                //if the displaced pixel is out of bounds, just skip its calculations
+                if (data_index == -1)
+                    continue;
+                // image_data[object[j]] = most_common_color[0];
+                // image_data[object[j] + 1] = most_common_color[1];
+                // image_data[object[j] + 2] = most_common_color[2];
+                if (!allow_overlap && image_data[data_index] !== 0) {
+                    i--;
+                    break;
+                }
+            }
+            let cannyPixel = cannyData[object[j]];
+            let LBPPixel = LBPData[object[j]];
+            let pixelR = 0;
+            let pixelG = 0;
+            let pixelB = 0;
+            if (LBPPixel > 128) {
+                let LBPMidRatio = LBPPixel / 128 - 1;
+                let boost = maxBoost * LBPMidRatio;
+                pixelR = Math.max((kMeansData[object[j]] - boost), 0);
+                pixelG = Math.max((kMeansData[object[j] + 1] - boost), 0);
+                pixelB = Math.max((kMeansData[object[j] + 2] - boost), 0);
+            }
+            else {
+                let LBPMidRatio = 1 - LBPPixel / 128;
+                let boost = maxBoost * LBPMidRatio;
+                pixelR = Math.min((kMeansData[object[j]] + boost), 255);
+                pixelG = Math.min((kMeansData[object[j] + 1] + boost), 255);
+                pixelB = Math.min((kMeansData[object[j] + 2] + boost), 255);
+            }
+            // let pixelA = cannyPixel == 0 ? LBPPixel:255;
+            let pixelA = 255;
+            // let redRatio = kMeansData[object[j]]/LBPPixel;
+            // let greenRatio = kMeansData[object[j] + 1]/LBPPixel;
+            // let blueRatio = kMeansData[object[j] + 2]/LBPPixel;
+            // let newLBP = color_box_values.reduce(function(prev, curr) {
+            //     return (Math.abs(curr - LBPPixel) < Math.abs(prev - LBPPixel) ? curr : prev);
+            // });
+            // let pixelR = parseInt(newLBP * redRatio);
+            // let pixelG = parseInt(newLBP * greenRatio);
+            // let pixelB = parseInt(newLBP * blueRatio);
+            image_data[data_index] = pixelR;
+            image_data[data_index + 1] = pixelG;
+            image_data[data_index + 2] = pixelB;
+            image_data[data_index + 3] = pixelA;
+        }
+    }
+    // console.log(image_data); 
+    // console.log(cannyData); 
+    for (let i = 0; i < image_data.length; i += 4) {
+        if ((image_data[i + 3]) == 0) {
+            image_data[i + 3] = 255;
+            image_data[i] = kMeansData[i];
+            image_data[i + 1] = kMeansData[i + 1];
+            image_data[i + 2] = kMeansData[i + 2];
+            // image_data[i+3] = 255;
+            // image_data[i] = 0;
+            // image_data[i+1] = 255;
+            // image_data[i+2] = 0;
+        }
+    }
+    const clampedArray = new ImageData(image_data, imageWidth);
+    postMessage({ msg, payload: [clampedArray] });
+}
 function imageDataFromMat(mat) {
     // converts the mat type to cv.CV_8U
     const img = new cv.Mat();
@@ -232,7 +424,7 @@ function kMeans(payload) {
     }
     let clusterCount = parseInt(payload[1]);
     let labels = new cv.Mat();
-    let attempts = 5;
+    let attempts = 1;
     let centers = new cv.Mat();
     let crite = new cv.TermCriteria(cv.TermCriteria_EPS + cv.TermCriteria_MAX_ITER, 10000, 0.0001);
     let criteria = [1, 10, 0.0001];
@@ -310,6 +502,8 @@ onmessage = function (e) {
             return cannyProcess(e.data);
         case 'fill':
             return objectsFill(e.data);
+        case 'generate':
+            return generateProcess(e.data);
         default:
             break;
     }

@@ -12,7 +12,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 //construction: repeated or not repeated, variance with object placement, allow overlap with objects?
 //steps:
 //1. grab objects and place them on scene
-//2. for each pixel in an object, calculate LBP value, kmeans value, 
+//2. for each pixel in an object, calculate LBP value (unless its an edge), kmeans value
 let cannyButton = document.getElementById("canny-button");
 let cannyCanvas = document.getElementById("canny-canvas");
 let cannyMaxSlider = document.getElementById("canny-max-slider");
@@ -26,46 +26,64 @@ let objectsCanvas = document.getElementById("objects-canvas");
 let objectsThresholdButton = document.getElementById("objects-threshold-button");
 let objectsDetectThreshold = document.getElementById("objects-detect-threshold-button");
 let objectsDetectPixelButton = document.getElementById("objects-detect-pixel-threshold-button");
+let strict = document.getElementById("strict");
+let generateButton = document.getElementById("generate-button");
+let generateCanvas = document.getElementById("generate-canvas");
 let kmeansNumColors = document.getElementById("kmeans-num-colors");
+let varianceInput = document.getElementById("variance-input");
+let numColorBoxes = document.getElementById("num-color-boxes");
+let objectPixelThreshold = document.getElementById("object-pixel-threshold");
+let factor = document.getElementById("factor");
 let settings_valid = true;
-let min_set = 0;
-let max_set = 100;
 let objects_distance_threshold = 1;
 let objects_detect_distance_threshold = 1;
 let objects_detect_pixel_threshold = 0;
 let kmeans_num_colors = 1;
+let allow_overlap = true;
+let is_repeated = false;
+//    let object_variance = 5;
 let buttonWorker = document.getElementById("worker-button");
 let kButton = document.getElementById("k-button");
+var objects_identified = [];
 const cv = new CV();
-objectsThresholdButton.addEventListener("input", (e) => {
-    objects_distance_threshold = e.target.value;
-});
-objectsDetectThreshold.addEventListener("input", (e) => {
-    objects_detect_distance_threshold = e.target.value;
-});
-objectsDetectPixelButton.addEventListener("input", (e) => {
-    objects_detect_pixel_threshold = e.target.value;
-});
-kmeansNumColors.addEventListener("input", (e) => {
-    kmeans_num_colors = e.target.value;
-});
+//    objectsThresholdButton.addEventListener("input", (e) => {
+//     objects_distance_threshold = e.target.value; 
+//    })
+//    objectsDetectThreshold.addEventListener("input", (e) => {
+//     objects_detect_distance_threshold = e.target.value;
+//    })
+//    objectsDetectPixelButton.addEventListener("input", (e)=>{
+//     objects_detect_pixel_threshold = e.target.value;
+//    });
+//    kmeansNumColors.addEventListener("input", (e)=>{
+//     kmeans_num_colors = e.target.value;
+//    })
 objectsButton.addEventListener("click", () => objectsClick(), false);
 function objectsClick() {
     return __awaiter(this, void 0, void 0, function* () {
+        let objects_distance_threshold = parseInt(objectsThresholdButton.value);
+        let objects_detect_distance_threshold = parseInt(objectsDetectThreshold.value);
+        let objects_detect_pixel_threshold = parseInt(objectsDetectPixelButton.value);
+        let strict_value = parseInt(strict.value);
         objectsCanvas.style.animationPlayState = "running";
         const imageData = cannyCanvas.getContext("2d").getImageData(0, 0, cannyCanvas.width, cannyCanvas.height).data;
         yield cv.load();
-        const processedImage = yield cv.imageProcessing("fill", [imageData, image_width, objects_distance_threshold, objects_detect_distance_threshold, objects_detect_pixel_threshold]);
-        dummyctx.putImageData(processedImage.data.payload, 0, 0);
+        const processedImage = yield cv.imageProcessing("fill", [imageData, image_width, objects_distance_threshold, objects_detect_distance_threshold, objects_detect_pixel_threshold, strict_value]);
+        dummyctx.putImageData(processedImage.data.payload[0], 0, 0);
         objectsCanvas.height = image_height;
         objectsCanvas.width = image_width;
         objectsCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, objectsCanvas.width, objectsCanvas.height);
+        objects_identified = processedImage.data.payload[1];
         objectsCanvas.style.animationPlayState = "paused";
     });
 }
+//    kmeansNumColors.addEventListener("input", (e)=>{
+//     kmeans_num_colors = e.target.value;
+//    })
 kmeansButton.addEventListener("click", () => kmeansClick(), false);
 function kmeansClick() {
     return __awaiter(this, void 0, void 0, function* () {
+        kmeans_num_colors = parseInt(kmeansNumColors.value);
         kmeansCanvas.style.animationPlayState = "running";
         const image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
         // Load the model
@@ -83,6 +101,8 @@ function kmeansClick() {
 cannyButton.addEventListener("click", () => cannyClick(), false);
 function cannyClick() {
     return __awaiter(this, void 0, void 0, function* () {
+        let min_set = parseInt(cannyMinSlider.value);
+        let max_set = parseInt(cannyMaxSlider.value);
         if (min_set < max_set) {
             cannyCanvas.style.animationPlayState = "running";
             const image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
@@ -96,84 +116,30 @@ function cannyClick() {
         }
     });
 }
+generateButton.addEventListener("click", () => generateClick(), false);
+function generateClick() {
+    return __awaiter(this, void 0, void 0, function* () {
+        generateCanvas.style.animationPlayState = "running";
+        let object_variance = parseInt(varianceInput.value);
+        let texture_threshold = parseInt(numColorBoxes.value);
+        let object_pixel_threshold = parseInt(objectPixelThreshold.value);
+        let factor_value = parseInt(factor.value);
+        //const objects_identified;
+        const cannyData = cannyCanvas.getContext("2d").getImageData(0, 0, cannyCanvas.width, cannyCanvas.height).data;
+        const LBPData = LBPCanvas.getContext("2d").getImageData(0, 0, LBPCanvas.width, LBPCanvas.height).data;
+        const kMeansData = kmeansCanvas.getContext("2d").getImageData(0, 0, kmeansCanvas.width, kmeansCanvas.height).data;
+        yield cv.load();
+        const processedImage = yield cv.imageProcessing("generate", [cannyData, LBPData, kMeansData, objects_identified, allow_overlap, is_repeated, object_variance, image_width, texture_threshold, object_pixel_threshold, factor_value]);
+        dummyctx.putImageData(processedImage.data.payload[0], 0, 0);
+        generateCanvas.height = image_height;
+        generateCanvas.width = image_width;
+        generateCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, generateCanvas.width, generateCanvas.height);
+        generateCanvas.style.animationPlayState = "paused";
+    });
+}
 cannyMaxSlider.addEventListener("input", (e) => {
     cannyMaxOutput.textContent = e.target.value;
-    max_set = parseInt(e.target.value);
 });
 cannyMinSlider.addEventListener("input", (e) => {
     cannyMinOutput.textContent = e.target.value;
-    min_set = parseInt(e.target.value);
 });
-//    var cannyData = cannyCanvas.getContext("2d").getImageData(0,0, cannyCanvas.width, cannyCanvas.height);
-//    var worker = new Worker("opencvworker.js");
-//    kmeansButton.addEventListener("click", ()=> kmeanCalc(), false);
-//    buttonWorker.addEventListener("click", () => {
-//         console.log("SENDING WORKER MESSAGE");
-//        worker.postMessage(["load"]);
-//    });
-//    kButton.addEventListener("click", (e)=>{
-//        console.log("LOGGED");
-//        let image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
-//        worker.postMessage(["kmeans", image]);
-//     });
-//     worker.onmessage = (e) => {
-//         console.log("Message received from worker: " + e.data[0]);
-//         if(e.data[0] == "kmeans"){
-//             dummyctx.putImageData(e.data[1], 0, 0);
-//         }
-//      };
-function onOpenCvReady() {
-    cv['onRuntimeInitialized'] = () => {
-        let javascriptStatus = document.getElementById("javascript-status");
-        javascriptStatus.innerHTML = "Javascript Satus: Loaded!";
-        cannyButton.addEventListener("click", (e) => {
-            if (min_set < max_set) {
-                let src = cv.imread("hidden-canvas");
-                let dst = new cv.Mat();
-                cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
-                // You can try more different parameters
-                cv.Canny(src, dst, min_set, max_set, 3, false);
-                cv.imshow("canny-canvas", dst);
-                cv.imshow("dummy-canvas", dst);
-            }
-        });
-        function kmeanCalc() {
-            // let mat = cv.imread("hidden-canvas");
-            // let sample = new cv.Mat(mat.rows * mat.cols, 3, cv.CV_32F);
-            // for( var y = 0; y < mat.rows; y++ ){
-            //     for( var x = 0; x < mat.cols; x++ ){
-            //         for( var z = 0; z < 3; z++){
-            //             sample.floatPtr(y + x*mat.rows)[z] = mat.ucharPtr(y,x)[z];
-            //         }
-            //     }
-            // }
-            // let clusterCount = 3;
-            // let labels= new cv.Mat();
-            // let attempts = 5;
-            // let centers= new cv.Mat();
-            // let crite= new cv.TermCriteria(cv.TermCriteria_EPS + cv.TermCriteria_MAX_ITER, 10000, 0.0001);
-            // let criteria = [1,10,0.0001];
-            //   cv.kmeans(sample, clusterCount, labels, crite, attempts, cv.KMEANS_RANDOM_CENTERS, centers );
-            //  var newImage= new cv.Mat(mat.size(),mat.type());
-            //  for( var y = 0; y < mat.rows; y++ ){
-            //     for( var x = 0; x < mat.cols; x++ )
-            //         { 
-            //             let cluster_idx = labels.intAt(y + x*mat.rows,0);
-            //             let redChan = new Uint8Array(1);
-            //             let greenChan = new Uint8Array(1);
-            //             let blueChan = new Uint8Array(1);
-            //             let alphaChan = new Uint8Array(1);
-            //             redChan[0]=centers.floatAt(cluster_idx, 0);
-            //             greenChan[0]=centers.floatAt(cluster_idx, 1);
-            //             blueChan[0]=centers.floatAt(cluster_idx, 2);
-            //             alphaChan[0]=255;
-            //             newImage.ucharPtr(y,x)[0] =  redChan;
-            //             newImage.ucharPtr(y,x)[1] =  greenChan;
-            //             newImage.ucharPtr(y,x)[2] =  blueChan;
-            //             newImage.ucharPtr(y,x)[3] =  alphaChan;
-            //         }
-            //  }
-            // cv.imshow('kmeans-canvas', newImage);
-        }
-    };
-}
