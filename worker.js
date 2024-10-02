@@ -12,6 +12,7 @@ function cannyProcess({ msg, payload }) {
     let dst = new cv.Mat();
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
     cv.Canny(src, dst, payload[1], payload[2], 3, false);
+    console.log(dst.data);
     postMessage({ msg, payload: imageDataFromMat(dst) });
 }
 function objectsFill({ msg, payload }) {
@@ -602,22 +603,22 @@ function kMeans(payload) {
     sample.delete();
     return clampedArray;
 }
-function generateDog({ msg, payload }) {
-    let std_c = 1;
-    const src = cv.matFromImageData(payload[0]);
-    let I_X = new cv.Mat();
-    let I_Y = new cv.Mat();
-    cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
-    // You can try more different parameters
-    //input, output, depth, orderx, ordery, kernel size
-    cv.Sobel(src, I_X, cv.CV_8U, 1, 0, 3, cv.BORDER_DEFAULT);
-    cv.Sobel(src, I_Y, cv.CV_8U, 0, 1, 3, cv.BORDER_DEFAULT);
-    let I_X_2 = I_X.mul(I_X);
-    let I_X_2 = I_X.mul(I_X);
-    //element wise multiplication
-    // utput = A.mul(B);
-    postMessage({ msg, payload: imageDataFromMat(I_X) });
-}
+//   function generateDog({msg, payload}){
+//     let std_c = 1;
+//     const src = cv.matFromImageData(payload[0])
+//     let I_X = new cv.Mat();
+//     let I_Y = new cv.Mat();
+//     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
+//     // You can try more different parameters
+//     //input, output, depth, orderx, ordery, kernel size
+//     cv.Sobel(src, I_X, cv.CV_8U, 1, 0, 3, cv.BORDER_DEFAULT);
+//     cv.Sobel(src, I_Y, cv.CV_8U, 0, 1, 3, cv.BORDER_DEFAULT);
+//     let I_X_2 = I_X.mul(I_X);
+//     let I_X_2 = I_X.mul(I_X);
+//     //element wise multiplication
+//     // utput = A.mul(B);
+//     postMessage({ msg, payload: imageDataFromMat(I_X)});
+//   }
 /**
  *  Here we will check from time to time if we can access the OpenCV
  *  functions. We will return in a callback if it has been resolved
