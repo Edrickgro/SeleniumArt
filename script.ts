@@ -7,6 +7,7 @@
    //2. for each pixel in an object, calculate LBP value (unless its an edge), kmeans value
    let cannyButton = <HTMLButtonElement> document.getElementById("canny-button");
    let cannyCanvas = <HTMLCanvasElement> document.getElementById("canny-canvas");
+   let cannySelectSource = <HTMLSelectElement> document.getElementById("canny-select-source");
 
    let cannyMaxSlider = <HTMLInputElement> document.getElementById("canny-max-slider");
    let cannyMinSlider = <HTMLInputElement> document.getElementById("canny-min-slider");
@@ -25,6 +26,9 @@
    let objectsDetectPixelButton = <HTMLButtonElement> document.getElementById("objects-detect-pixel-threshold-button");
    let strict = <HTMLInputElement> document.getElementById("strict");
 
+   let dogCanvas = <HTMLCanvasElement> document.getElementById("dog-canvas");
+   let dogButton = <HTMLButtonElement> document.getElementById("dog-button"); 
+
    let generateButton = <HTMLButtonElement> document.getElementById("generate-button");
    let generateCanvas = <HTMLCanvasElement> document.getElementById("generate-canvas");
 
@@ -34,6 +38,7 @@
    let numColorBoxes = <HTMLInputElement> document.getElementById("num-color-boxes");
    let objectPixelThreshold = <HTMLInputElement> document.getElementById("object-pixel-threshold");
    let factor = <HTMLInputElement> document.getElementById("factor");
+   let emptyFill = <HTMLSelectElement> document.getElementById("generate-empty-fill");
  
    let settings_valid = true;
    
@@ -55,20 +60,6 @@
 
    const cv = new CV();
 
-//    objectsThresholdButton.addEventListener("input", (e) => {
-//     objects_distance_threshold = e.target.value; 
-
-//    })
-//    objectsDetectThreshold.addEventListener("input", (e) => {
-//     objects_detect_distance_threshold = e.target.value;
-//    })
-//    objectsDetectPixelButton.addEventListener("input", (e)=>{
-//     objects_detect_pixel_threshold = e.target.value;
-//    });
-
-//    kmeansNumColors.addEventListener("input", (e)=>{
-//     kmeans_num_colors = e.target.value;
-//    })
 
 
    objectsButton.addEventListener("click", () => objectsClick(), false); 
@@ -101,9 +92,30 @@
 
    }
 
-//    kmeansNumColors.addEventListener("input", (e)=>{
-//     kmeans_num_colors = e.target.value;
-//    })
+   dogButton.addEventListener("click", ()=>dogClick(), false);
+
+   async function dogClick(){
+
+        dogCanvas.style.animationPlayState = "running";
+
+        const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+
+        await cv.load();
+        // Processing image
+        const processedImage = await cv.imageProcessing("dog", [image]);
+
+        dummyctx.putImageData(processedImage.data.payload, 0, 0);
+
+        dogCanvas.height = image_height; 
+        dogCanvas.width = image_width; 
+
+        dogCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, dogCanvas.width, dogCanvas.height);
+
+        dogCanvas.style.animationPlayState = "paused";
+
+
+   }
+
 
   
 
@@ -118,6 +130,8 @@
         kmeansCanvas.style.animationPlayState = "running";
 
         const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+        // const image = dummyctx.getImageData(0,0, dummyCanvas.width, hiddenCanvas.height);
+
         // Load the model
         await cv.load();
         // Processing image
@@ -142,10 +156,21 @@
         let min_set = parseInt(cannyMinSlider.value);
         let max_set = parseInt(cannyMaxSlider.value);
         if(min_set < max_set){
+            let image = 0;
+
+            if(cannySelectSource.value == "kMeans"){
+
+                image = kmeansCanvas.getContext("2d").getImageData(0,0, kmeansCanvas.width, kmeansCanvas.height);
+            }else{
+
+                image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+
+            }
 
             cannyCanvas.style.animationPlayState = "running";
 
-            const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+            // const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+            // const image = dummyctx.getImageData(0,0, dummyCanvas.width, hiddenCanvas.height);
             await cv.load(); 
             const processedImage = await cv.imageProcessing("canny", [image, min_set, max_set]);
 
@@ -171,6 +196,7 @@
         let texture_threshold = parseInt(numColorBoxes.value);
         let object_pixel_threshold = parseInt(objectPixelThreshold.value);
         let factor_value = parseInt(factor.value);
+        let empty_fill_value = emptyFill.value == "common" ? 1:0;
         //const objects_identified;
         const cannyData = cannyCanvas.getContext("2d").getImageData(0,0,cannyCanvas.width, cannyCanvas.height).data;
         const LBPData = LBPCanvas.getContext("2d").getImageData(0,0,LBPCanvas.width, LBPCanvas.height).data;
@@ -179,8 +205,11 @@
         await cv.load();
 
         const processedImage = await 
-        cv.imageProcessing("generate", 
-            [cannyData, LBPData, kMeansData, objects_identified, allow_overlap, is_repeated, object_variance, image_width, texture_threshold, object_pixel_threshold, factor_value]);
+        cv.imageProcessing("generate",
+
+            [cannyData, LBPData, kMeansData, 
+            objects_identified, allow_overlap, is_repeated, object_variance, image_width, texture_threshold, 
+            object_pixel_threshold, factor_value, empty_fill_value]);
 
 
         dummyctx.putImageData(processedImage.data.payload[0], 0, 0);

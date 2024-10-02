@@ -13,78 +13,204 @@
     <div id = "main-container">
 
         <div class = "algorithm-container">
-            <p>Uploaded Image</p>
+            <h2>UPLOADED IMAGE</h2>
             <canvas id="image-canvas"></canvas>
             <input type="file" id="file-input" name="file" />
         </div>
 
         <div class = "algorithm-container">
-            <p>LBP Image</p>
-            <canvas id="LBP-canvas"></canvas>
-            <button id="LBP-button">Apply LBP</button>    
+
+            <div>
+                <h2>DoG Image</h2>
+                <canvas id="dog-canvas"></canvas>
+                <button id="dog-button">Apply DoG</button>
+
+            </div>
+                
+        </div>
+
+        <div class = "algorithm-container">
+            <div>
+                <h2>LBP IMAGE</h2>
+                <canvas id="LBP-canvas"></canvas>
+                <button id="LBP-button">Apply LBP</button>
+
+            </div>
+                
         </div>
 
         <div class = "algorithm-container">
 
-            <p>Canny Image</p>
+            <h2>CANNY IMAGE</h2>
             <canvas id="canny-canvas"></canvas>
-            <input type="range" id="canny-min-slider" min="0" max="500" value="50" step="10" />
-            <p>Min: <output id="canny-min-output"></output></p>
-            <input type="range" id="canny-max-slider" min="10" max="500" value="100" step="10" />
-            <p>Max: <output id="canny-max-output"></output></p>  
-            <button id="canny-button">Apply Canny</button>
-            
+
+            <div class = "ui-container">
+
+                <div class = "component-container">
+                    <button id="canny-button">Apply Canny</button>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Min: <output id="canny-min-output"></output>
+                        <input type="range" id="canny-min-slider" min="0" max="500" value="50" step="10" />
+                    </label>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Max: <output id="canny-max-output"></output>
+                        <input type="range" id="canny-max-slider" min="10" max="500" value="100" step="10" />
+                    </label>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Source:
+                        <select id = "canny-select-source">
+                            <option value="original">Original</option>
+                            <option value="kMeans">KMeans</option>
+                        </select>
+                    </label>
+                </div>
+
+            </div>
+
         </div>
 
 
         <div class = "algorithm-container">
-            <p>Objects Image</p>
+            <h2>OBJECTS IMAGE</h2>
             <canvas id="objects-canvas"></canvas>
-            <p>Background Threshold (0 - 100)</p>
-            <input type="number" id="objects-threshold-button"  min="0" max="100">
-            <p>Object Detection Threshold (0 - 100)</p>
-            <input type="number" id="objects-detect-threshold-button"  min="0" max="100">
-            <p>Object Pixel Collection Threshold (0 - 20000)</p>
-            <input type="number" id="objects-detect-pixel-threshold-button"  min="0" max="20000">
-            <label>
-                <input type="number" id = "strict" min = "0" max = "1">
-                Strict Background
-            </label>
-            <button id = "objects-detect-button">Detect Objects</button>
+
+            
+            <div class = "ui-container">
+
+                <div class = "component-container">
+                    <button id = "objects-detect-button">Detect Objects</button>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Background TH:
+                        <input type="number" id="objects-threshold-button"  min="0">
+                    </label>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Object TH:
+                        <input type="number" id="objects-detect-threshold-button"  min="0">
+                    </label>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Pixel TH:
+                        <input type="number" id="objects-detect-pixel-threshold-button"  min="0">
+                    </label>
+
+                </div>
+                    
+                <div class = "component-container">
+                    <label>
+                        Strict Background?
+                        <input type="number" id = "strict" min = "0" max = "1">
+                    </label>
+                </div>
+            </div>
+
+            
+          
         </div>
 
+
+
+
         <div class = "algorithm-container">
-            <p>Kmeans Image</p>
+
+            
+            <h2>KMEANS IMAGE</h2>
             <canvas id="kmeans-canvas"></canvas>
-            <p>Num colors (1 - 200)</p>
-            <input type="number" id="kmeans-num-colors"  min="1" max="200">
-            <button id = "kmeans-button">Apply Kmeans</button>
+
+            <div class = "ui-container">
+
+                <div class = "component-container">
+                    <button id = "kmeans-button">Apply Kmeans</button>
+                </div>
+
+                <div class = "component-container">
+
+                    <label>
+                        Num colors:
+                        <input type="number" id="kmeans-num-colors"  min="1">
+                    </label>
+
+                </div>
+
+            </div>
+
         </div>
 
 
-        <div class = "algorithm-container">
-            <p>Generate Image</p>
-            <canvas id="generate-canvas"></canvas>
-            <label>
-                <input type = "number" id = "variance-input">
-                variance
-            </label>
-            <label>
-                <input type = "number" id = "num-color-boxes">
-                texture
-            </label>
-            <label>
-                <input type = "number" id = "object-pixel-threshold">
-                object pixel threshold
-            </label>
-            
 
-            <label>
-                <input type = "number" id = "factor">
-                factor
-            </label>
+        <div class = "algorithm-container">
+            <h2>GENERATE IMAGE</h2>
+            <canvas id="generate-canvas"></canvas>
+
+            <div class = "ui-container">
+
+                <div class = "component-container">
+                    <button id = "generate-button">Generate</button>
+                </div>
+                
+                <div class = "component-container">
+                    <label>
+                        variance:
+                        <input type = "number" id = "variance-input" min = "0">
+                    </label>
+                </div>
+                
+                <div class = "component-container">
+                    <label>
+                        texture:
+                        <input type = "number" id = "num-color-boxes" min = "0" max = "255">
+                    </label>
+                </div>
+                
+                <div class = "component-container">
+                    <label>
+                        num pixels TH:
+                        <input type = "number" id = "object-pixel-threshold" min = "0">
+                    </label>
+                </div>
+                
+                <div class = "component-container">
+                    <label>
+                        factor:
+                        <input type = "number" id = "factor" min = "0">
+                    </label>
+                </div>
+
+
+                <div class = "component-container">
+
+                    <label>
+                        Empty Fill:
+                        <select id = "generate-empty-fill">
+                            <option value="common">Most Common Color</option>
+                            <option value="black">Black</option>
+                        </select>
+                    </label>
+
+
+                </div>
+                    
+                
+
+
+            </div>
             
-            <button id = "generate-button">Generate</button>
         </div>
 
 

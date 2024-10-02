@@ -3,7 +3,7 @@ let canvases = document.querySelectorAll("canvas");
 
 canvases.forEach((canvas) => {
     let ctx = canvas.getContext("2d"); 
-    ctx.fillStyle = "brown";
+    ctx.fillStyle = "#433E0E";
     ctx.fillRect(0, 0, canvas.width,canvas.height);
   });
 
