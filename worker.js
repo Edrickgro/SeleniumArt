@@ -423,11 +423,14 @@ function generateProcess({ msg, payload }) {
             let g = kMeansData[i + 1];
             let b = kMeansData[i + 2];
             let a = 255;
+            //00000011
+            //00000100
+            //00000111
             let color = 0;
-            color |= a << 24;
+            color |= a;
             color |= r << 16;
             color |= g << 8;
-            color |= b;
+            color |= b << 24;
             if (unique_colors[color] == undefined) {
                 unique_colors[color] = 1;
             }
@@ -603,22 +606,114 @@ function kMeans(payload) {
     sample.delete();
     return clampedArray;
 }
-//   function generateDog({msg, payload}){
-//     let std_c = 1;
-//     const src = cv.matFromImageData(payload[0])
-//     let I_X = new cv.Mat();
-//     let I_Y = new cv.Mat();
-//     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
-//     // You can try more different parameters
-//     //input, output, depth, orderx, ordery, kernel size
-//     cv.Sobel(src, I_X, cv.CV_8U, 1, 0, 3, cv.BORDER_DEFAULT);
-//     cv.Sobel(src, I_Y, cv.CV_8U, 0, 1, 3, cv.BORDER_DEFAULT);
-//     let I_X_2 = I_X.mul(I_X);
-//     let I_X_2 = I_X.mul(I_X);
-//     //element wise multiplication
-//     // utput = A.mul(B);
-//     postMessage({ msg, payload: imageDataFromMat(I_X)});
-//   }
+function crossEdgeBlur(stc_e, direction, data) {
+    let mid = Math.floor(stc_e / 2);
+    let interp_list = [];
+    for (let r = -mid; r <= mid; r++) {
+        let x = r * Math.cos(direction);
+        let y = r * Math.sin(direction);
+        let x1 = Math.floor(x);
+        let x2 = Math.ceil(x);
+        let y1 = Math.floor(y);
+        let y2 = Math.ceil(y);
+        let dataIndex = ((y) * imageWidth + (x)) * 4;
+        let demon = ((x2 - x1) * (y2 - y1));
+        //row, col
+        let up = validPixel(y1, x1) ? data[((y1) * imageWidth + (x1)) * 4] : 0;
+        let right = validPixel(y2, x2) ? data[((y1) * imageWidth + (x2)) * 4] : 0;
+        let bottom = validPixel(y2, x1) ? data[((y2) * imageWidth + (x1)) * 4] : 0;
+        let left = validPixel(y2, x2) ? data[((y2) * imageWidth + (x2)) * 4] : 0;
+        let interpolated = (((x2 - x) * (y2 - y)) / demon) * up +
+            (((x - x1) * (y2 - y)) / demon) * right +
+            (((x2 - x) * (y - y1)) / demon) * bottom +
+            (((x - x1) * (y - y1)) / demon) * left;
+        interp_list.push(interpolated);
+    }
+}
+function generateDog({ msg, payload }) {
+    let std_c = 3; //standard deviation of sobel gaussian blur
+    let stc_e = 3; //standard deviation of one dimension across edge gaussian blur
+    let k = 3; //second gaussian std scalar
+    let t = 0.5; //second gaussian scalar
+    let o = 1;
+    let e = 0;
+    let src = cv.matFromImageData(payload[0]);
+    // const srcClone = src.clone(); 
+    cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
+    let firstGaussian = new cv.Mat();
+    let secondGaussian = new cv.Mat();
+    let ksize = new cv.Size(0, 0);
+    cv.GaussianBlur(src, firstGaussian, ksize, std_c, cv.BORDER_DEFAULT);
+    cv.GaussianBlur(src, secondGaussian, ksize, (std_c * k), cv.BORDER_DEFAULT);
+    let difference = new cv.Mat(firstGaussian.size(), firstGaussian.type());
+    for (var y = 0; y < firstGaussian.rows; y++) {
+        for (var x = 0; x < firstGaussian.cols; x++) {
+            let differencePixel = difference.ucharPtr(y, x);
+            let first = firstGaussian.ucharPtr(y, x);
+            let second = secondGaussian.ucharPtr(y, x);
+            differencePixel[0] = first[0] - second[0];
+            let debug = differencePixel[0];
+        }
+    }
+    firstGaussian.delete();
+    secondGaussian.delete();
+    src.delete();
+    // let imageData: Uint8ClampedArray = structuredClone(payload[0].data); 
+    // imageWidth = payload[1];
+    // imageHeight = (imageData.length/4) / imageWidth;
+    // let I_X = new cv.Mat();
+    // let I_Y = new cv.Mat();
+    // //CONVERT TO GRAY SCALE
+    // cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
+    // //APPLY SOBEL
+    // //input, output, depth, orderx, ordery, kernel size
+    // cv.Sobel(src, I_X, cv.CV_8U, 1, 0, 3, cv.BORDER_DEFAULT);
+    // cv.Sobel(src, I_Y, cv.CV_8U, 0, 1, 3, cv.BORDER_DEFAULT);
+    // let I_X2 = I_X.mul(I_X,1);
+    // let I_Y2 = I_Y.mul(I_Y,1);
+    // let I_XY = I_X.mul(I_Y,1);
+    // let E = new cv.Mat();
+    // let F = new cv.Mat();
+    // let G = new cv.Mat();
+    // let ksize = new cv.Size(0, 0);
+    // cv.GaussianBlur(I_X2, E, ksize, std_c, cv.BORDER_DEFAULT);
+    // cv.GaussianBlur(I_XY, F, ksize, std_c, cv.BORDER_DEFAULT);
+    // cv.GaussianBlur(I_Y2, G, ksize, std_c, cv.BORDER_DEFAULT);
+    // //(E+G +- sqrt( (E-G)^2 + 4F^2)  )/2
+    // let newImage = new cv.Mat(G.size(),G.type());
+    // for(var y = 0; y < G.rows; y++ ){
+    //     for(var x = 0; x < G.cols; x++)
+    //         { 
+    //             let e = E.ucharPtr(y,x)[0];
+    //             let f = F.ucharPtr(y,x)[0];
+    //             let g = G.ucharPtr(y,x)[0];
+    //             let EGSquare = (e-g) * (e-g);
+    //             let FSquare = f * f;
+    //             let rootbytwo = (Math.sqrt(EGSquare + (4*FSquare)))/2;
+    //             let lambdaOne =  (e + g) + rootbytwo;
+    //             // let lambdaTwo = (e + g) - rootbytwo;
+    //             let eigenvector = [lambdaOne - e, -F];
+    //             let directionRadians = Math.atan2(eigenvector[1], eigenvector[0]);
+    //             let pixel = newImage.ucharPtr(y, x);
+    //             pixel[0] = 125;
+    //         }
+    // }
+    console.log("mat");
+    console.log(difference.data);
+    // console.log("been using");
+    let finalImage = imageDataFromMat(difference);
+    console.log(finalImage.data);
+    difference.delete();
+    // I_X2.delete();
+    // I_Y2.delete();
+    // I_XY.delete();
+    // I_X.delete(); 
+    // I_Y.delete();
+    // E.delete();
+    // F.delete();
+    // G.delete();
+    postMessage({ msg, payload: finalImage });
+}
 /**
  *  Here we will check from time to time if we can access the OpenCV
  *  functions. We will return in a callback if it has been resolved

@@ -102,8 +102,9 @@
 
         await cv.load();
         // Processing image
-        const processedImage = await cv.imageProcessing("dog", [image]);
-
+        
+        const processedImage = await cv.imageProcessing("dog", [image, image_width]);
+ 
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
         dogCanvas.height = image_height; 
@@ -115,9 +116,7 @@
 
 
    }
-
-
-  
+ 
 
    kmeansButton.addEventListener("click", () => kmeansClick(), false);
 

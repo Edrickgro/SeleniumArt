@@ -76,7 +76,7 @@ function dogClick() {
         const image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
         yield cv.load();
         // Processing image
-        const processedImage = yield cv.imageProcessing("dog", [image]);
+        const processedImage = yield cv.imageProcessing("dog", [image, image_width]);
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
         dogCanvas.height = image_height;
         dogCanvas.width = image_width;
