@@ -99,7 +99,6 @@
         dogCanvas.style.animationPlayState = "running";
 
         const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
-
         await cv.load();
         // Processing image
         
