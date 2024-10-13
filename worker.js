@@ -692,72 +692,52 @@ function oneDimensionalGaussian(stc_e, interp_list) {
     return gaussianSum / sum;
 }
 function generateDog({ msg, payload }) {
-    let std_c = 0.1; //standard deviation of sobel gaussian blur
-    let stc_e = 3; //standard deviation of one dimension across edge gaussian blur
-    let k = 2; //second gaussian std scalar
-    let t = 1; //second gaussian scalar
-    let o = 1;
-    let e = 0;
+    // let std_c = 0.1; //standard deviation of sobel gaussian blur
+    // let std_e = 3; //standard deviation of one dimension across edge gaussian blur
+    // let k = 2; //second gaussian std scalar
+    // let t = 5; //second gaussian scalar
+    // let o = 0.05; //below threshold multiplier (0-1)
+    // let e = 50; //minimum threshold (0-255)
+    let std_c = payload[3];
+    let std_e = payload[2];
+    let k = payload[4];
+    let t = payload[5];
+    let o = payload[6];
+    let e_thresh = payload[7];
+    let image_data = payload[0].data;
     let src = cv.matFromImageData(payload[0]);
-    // const srcClone = src.clone(); 
-    // let firstGaussian = new cv.Mat();
-    // let secondGaussian = new cv.Mat();
-    // let ksize = new cv.Size(0, 0);
-    // cv.GaussianBlur(src, firstGaussian, ksize, std_c, cv.BORDER_DEFAULT);
-    // cv.GaussianBlur(src, secondGaussian, ksize, (std_c*k), cv.BORDER_DEFAULT);
-    // let difference = new cv.Mat(firstGaussian.size(), firstGaussian.type());
-    // for(var y = 0; y < firstGaussian.rows; y++ ){
-    //     for(var x = 0; x < firstGaussian.cols; x++)
-    //         { 
-    //             let differencePixel = difference.ucharPtr(y,x);
-    //             let first = firstGaussian.ucharPtr(y, x);
-    //             let second = secondGaussian.ucharPtr(y, x);
-    //             differencePixel[0] = first[0] - second[0];
-    //             let debug = differencePixel[0];
-    //         }
-    // }
-    // firstGaussian.delete();
-    // secondGaussian.delete();
-    // src.delete();
     let imageData = structuredClone(payload[0].data);
     imageWidth = payload[1];
     imageHeight = (imageData.length / 4) / imageWidth;
-    let I_X = new cv.Mat(src.rows, src.cols, 6);
-    let I_Y = new cv.Mat(src.rows, src.cols, 6);
+    let I_X = new cv.Mat();
+    let I_Y = new cv.Mat();
+    let E = new cv.Mat();
+    let F = new cv.Mat();
+    let G = new cv.Mat();
+    let I_X2 = new cv.Mat();
+    let I_Y2 = new cv.Mat();
+    let I_XY = new cv.Mat();
     //CONVERT TO GRAY SCALE
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
     //input, output, depth, orderx, ordery, kernel size
     cv.Sobel(src, I_X, cv.CV_64F, 1, 0, 3, cv.BORDER_DEFAULT);
-    // cv.convertScaleAbs(I_X, I_X, 1, 0);
     cv.Sobel(src, I_Y, cv.CV_64F, 0, 1, 3, cv.BORDER_DEFAULT);
-    // cv.convertScaleAbs(I_Y, I_Y, 1, 0);
-    let numberTest = new Number(I_X.ucharPtr(0, 31)[0]);
-    console.log(numberTest);
-    console.log(I_X.data);
-    cv.convertScaleAbs(I_X, I_X, 1, 0);
-    console.log("convered");
-    console.log(I_X.ucharPtr(0, 31)[0]);
-    console.log(I_X.data);
-    let I_X2 = I_X.mul(I_X, 1);
-    let numberTester = new Number(I_X2.ucharPtr(0, 31)[0]);
-    console.log(numberTester);
-    let I_Y2 = I_Y.mul(I_Y, 1);
-    let I_XY = I_X.mul(I_Y, 1);
-    let E = new cv.Mat();
-    let F = new cv.Mat();
-    let G = new cv.Mat();
-    let ksize = new cv.Size(0, 0);
+    I_X2 = I_X.mul(I_X, 1);
+    I_Y2 = I_Y.mul(I_Y, 1);
+    I_XY = I_X.mul(I_Y, 1);
+    let rows = src.rows;
+    let cols = src.cols;
+    let ksize = new cv.Size(9, 9);
     cv.GaussianBlur(I_X2, E, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_XY, F, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_Y2, G, ksize, std_c, cv.BORDER_DEFAULT);
-    //(E+G +- sqrt( (E-G)^2 + 4F^2)  )/2
-    let newImage = new cv.Mat(G.size(), G.type());
-    let ten = Math.floor(G.rows);
-    for (var y = 0; y < G.rows; y++) {
-        for (var x = 0; x < G.cols; x++) {
-            let e = E.ucharPtr(y, x)[0];
-            let f = F.ucharPtr(y, x)[0];
-            let g = G.ucharPtr(y, x)[0];
+    // (E+G +- sqrt( (E-G)^2 + 4F^2)  )/2
+    let newImage = new cv.Mat(rows, cols, src.type());
+    for (var y = 0; y < rows; y++) {
+        for (var x = 0; x < cols; x++) {
+            let e = E.doublePtr(y, x)[0];
+            let f = F.doublePtr(y, x)[0];
+            let g = G.doublePtr(y, x)[0];
             let EGSquare = (e - g) * (e - g);
             let FSquare = f * f;
             let rootbytwo = (Math.sqrt(EGSquare + (4 * FSquare))) / 2;
@@ -765,30 +745,42 @@ function generateDog({ msg, payload }) {
             // let lambdaTwo = (e + g) - rootbytwo;
             let eigenvector = [lambdaOne - e, -f];
             let directionRadians = Math.atan2(eigenvector[1], eigenvector[0]);
-            let directionDegrees = (Math.atan2(eigenvector[1], eigenvector[0]) * 180) / Math.PI;
-            if (directionDegrees < 0) {
-                directionDegrees = directionDegrees + 360;
-            }
-            let directionDiffernce = (directionDegrees * 0.70);
-            let pixel = newImage.ucharPtr(y, x);
-            // let interp_list_primary = crossEdgeBlur(stc_e, directionRadians, imageData);
-            // let primaryGaussianValue = oneDimensionalGaussian(stc_e, interp_list_primary);
-            // let interp_list_secondary = crossEdgeBlur((stc_e *k), directionRadians, imageData);
-            // let secondaryGaussianValue = oneDimensionalGaussian((stc_e * k), interp_list_secondary);
-            // let difference_of_gaussians = (1 + t)*primaryGaussianValue - (t) * secondaryGaussianValue;
+            // let directionDegrees = (Math.atan2(eigenvector[1], eigenvector[0]) * 180) / Math.PI;
+            // if(directionDegrees < 0){
+            //     directionDegrees = directionDegrees + 360; 
+            // }
+            // let directionDifference = (directionDegrees * 0.70);
+            // let pixel = newImage.ucharPtr(y, x);
+            let interp_list_primary = crossEdgeBlur(std_e, directionRadians, imageData);
+            let primaryGaussianValue = oneDimensionalGaussian(std_e, interp_list_primary);
+            let interp_list_secondary = crossEdgeBlur((std_e * k), directionRadians, imageData);
+            let secondaryGaussianValue = oneDimensionalGaussian((std_e * k), interp_list_secondary);
+            let difference_of_gaussians = (1 + t) * primaryGaussianValue - (t) * secondaryGaussianValue;
             // let difference_of_gaussians = primaryGaussianValue - secondaryGaussianValue;
-            pixel[0] = Math.floor(directionDegrees);
+            //u>=e
+            //1 + tanh(o + (u - e))
+            if (difference_of_gaussians >= e_thresh) {
+                difference_of_gaussians = 255;
+            }
+            else {
+                difference_of_gaussians = (1 + Math.tanh(o * (difference_of_gaussians - e))) * 255;
+                // difference_of_gaussians = 0;
+            }
+            let image_index = ((y * imageWidth) + x) * 4;
+            image_data[image_index] = difference_of_gaussians;
+            image_data[image_index + 1] = difference_of_gaussians;
+            image_data[image_index + 2] = difference_of_gaussians;
+            image_data[image_index + 3] = 255;
+            // pixel[0] = Math.floor(directionDifference);
         }
     }
-    console.log(newImage.data);
-    let finalImage = imageDataFromMat(I_Y);
-    console.log(finalImage.data);
-    postMessage({ msg, payload: finalImage });
+    const clampedArray = new ImageData(image_data, imageWidth);
+    postMessage({ msg, payload: clampedArray });
+    I_X.delete();
+    I_Y.delete();
     I_X2.delete();
     I_Y2.delete();
     I_XY.delete();
-    I_X.delete();
-    I_Y.delete();
     E.delete();
     F.delete();
     G.delete();
@@ -809,6 +801,7 @@ function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
     const interval = setInterval(() => {
         const limitReached = timeSpentMs > waitTimeMs;
         if (cv.Mat || limitReached) {
+            console.log("time out!");
             clearInterval(interval);
             return callbackFn(!limitReached);
         }
@@ -824,19 +817,23 @@ function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
  */
 onmessage = function (e) {
     switch (e.data.msg) {
-        case 'load': {
-            if (!loaded) {
-                // Import Webassembly script
-                self.importScripts('opencv.js');
-                waitForOpencv(function (success) {
-                    if (success)
-                        postMessage({ msg: e.data.msg });
-                    else
-                        throw new Error('Error on loading OpenCV');
-                });
+        case 'load':
+            {
+                if (!loaded) {
+                    // Import Webassembly script
+                    self.importScripts('opencv.js');
+                    waitForOpencv(function (success) {
+                        if (success) {
+                            postMessage({ msg: e.data.msg });
+                        }
+                        else {
+                            console.log("FAILURE");
+                            throw new Error('Error on loading OpenCV');
+                        }
+                    });
+                }
+                break;
             }
-            break;
-        }
         case 'kmeans':
             return kmeansProcess(e.data);
         case 'canny':

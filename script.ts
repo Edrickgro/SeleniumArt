@@ -27,7 +27,13 @@
    let strict = <HTMLInputElement> document.getElementById("strict");
 
    let dogCanvas = <HTMLCanvasElement> document.getElementById("dog-canvas");
-   let dogButton = <HTMLButtonElement> document.getElementById("dog-button"); 
+   let dogButton = <HTMLButtonElement> document.getElementById("dog-button");
+   let dogstdcInput = <HTMLInputElement> document.getElementById("dog-stdc-input");
+   let dogstdeInput = <HTMLInputElement> document.getElementById("dog-stde-input");
+   let dogkInput = <HTMLInputElement> document.getElementById("dog-k-input");
+   let dogtInput = <HTMLInputElement> document.getElementById("dog-t-input");
+   let dogoInput = <HTMLInputElement> document.getElementById("dog-o-input");
+   let dogeInput = <HTMLInputElement> document.getElementById("dog-e-input");
 
    let generateButton = <HTMLButtonElement> document.getElementById("generate-button");
    let generateCanvas = <HTMLCanvasElement> document.getElementById("generate-canvas");
@@ -98,11 +104,18 @@
 
         dogCanvas.style.animationPlayState = "running";
 
+        let std_e = parseFloat(dogstdeInput.value);
+        let std_c = parseFloat(dogstdcInput.value);
+        let k = parseFloat(dogkInput.value);
+        let t = parseFloat(dogtInput.value);
+        let o = parseFloat(dogoInput.value);
+        let e = parseFloat(dogeInput.value);
+
         const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
         await cv.load();
         // Processing image
         
-        const processedImage = await cv.imageProcessing("dog", [image, image_width]);
+        const processedImage = await cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e]);
  
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
