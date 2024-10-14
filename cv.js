@@ -36,10 +36,10 @@ class CV {
         this.worker = new Worker(`worker.js`); // load worker
         // Capture events and save [status, event] inside the _status object
         this.worker.onmessage = e => this._status[e.data.msg] = ['done', e];
-        this.worker.onerror = e => this._status[e.data.msg] = ['error', e];
-        // this.worker.onerror = function (err) {
-        //   console.log('worker is suffering!', err)
-        // };
+        // this.worker.onerror = e => this._status[e.data.msg] = ['error', e]
+        this.worker.onerror = function (err) {
+            console.log('worker is suffering!', err);
+        };
         return this._dispatch({ msg: 'load' });
     }
     /**

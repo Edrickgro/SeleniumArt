@@ -606,20 +606,29 @@ function kMeans(payload) {
     sample.delete();
     return clampedArray;
 }
+function getKernelSize(sigma) {
+    if (sigma <= 2)
+        return 3;
+    return Math.round((sigma * 2) + 1);
+}
 function crossEdgeBlur(stc_e, direction, data) {
-    let mid = Math.floor(stc_e / 2);
+    let kernelSize = getKernelSize(stc_e);
+    let mid = Math.floor(kernelSize / 2);
     let interp_list = [];
     for (let r = -mid; r <= mid; r++) {
-        let x = r * Math.cos(direction);
-        let y = r * Math.sin(direction);
-        if (!validPixel(y, x)) {
-            interp_list.push(0);
-            continue;
-        }
+        // let x = r * Math.cos(direction);
+        let x = 0;
+        // let y = r * Math.sin(direction);
+        let y = r;
+        // if(!validPixel(y,x)){
+        //     interp_list.push(0);
+        //     continue;
+        // }
         let x1 = 0;
         let x2 = 0;
         let y1 = 0;
         let y2 = 0;
+        //checks if whole number
         if (x % 1 == 0) {
             x1 = x - 1;
             x2 = x + 1;
@@ -639,10 +648,26 @@ function crossEdgeBlur(stc_e, direction, data) {
         let dataIndex = ((y) * imageWidth + (x)) * 4;
         let demon = ((x2 - x1) * (y2 - y1));
         //row, col
-        let upLeft = validPixel(y1, x1) ? data[((y1) * imageWidth + (x1)) * 4] : 0;
-        let upRight = validPixel(y1, x2) ? data[((y1) * imageWidth + (x2)) * 4] : 0;
-        let bottomLeft = validPixel(y2, x1) ? data[((y2) * imageWidth + (x1)) * 4] : 0;
-        let bottomRight = validPixel(y2, x2) ? data[((y2) * imageWidth + (x2)) * 4] : 0;
+        // let upLeft = validPixel(y1, x1) ? data[((y1) * imageWidth + (x1)) * 4]: 0;
+        // let upRight = validPixel(y1, x2) ? data[((y1) * imageWidth + (x2)) * 4]: 0;
+        // let bottomLeft = validPixel(y2,x1) ? data[((y2) * imageWidth + (x1)) * 4]: 0;
+        // let bottomRight = validPixel(y2, x2) ? data[((y2) * imageWidth + (x2)) * 4]: 0;
+        let upLeft = validPixel(y1, x1) ?
+            (data[(((y1) * imageWidth + (x1)) * 4)] +
+                data[(((y1) * imageWidth + (x1)) * 4) + 1] +
+                data[(((y1) * imageWidth + (x1)) * 4) + 2]) / 3 : 0;
+        let upRight = validPixel(y1, x2) ?
+            (data[(((y1) * imageWidth + (x2)) * 4)] +
+                data[(((y1) * imageWidth + (x2)) * 4) + 1] +
+                data[(((y1) * imageWidth + (x2)) * 4) + 2]) / 3 : 0;
+        let bottomLeft = validPixel(y2, x1) ?
+            (data[(((y2) * imageWidth + (x1)) * 4)] +
+                data[(((y2) * imageWidth + (x1)) * 4) + 1] +
+                data[(((y2) * imageWidth + (x1)) * 4) + 2]) / 3 : 0;
+        let bottomRight = validPixel(y2, x2) ?
+            (data[(((y2) * imageWidth + (x2)) * 4)] +
+                data[(((y2) * imageWidth + (x2)) * 4) + 1] +
+                data[(((y2) * imageWidth + (x2)) * 4) + 2]) / 3 : 0;
         let interpolated = (((x2 - x) * (y2 - y)) / demon) * upLeft +
             (((x - x1) * (y2 - y)) / demon) * upRight +
             (((x2 - x) * (y - y1)) / demon) * bottomLeft +
@@ -652,44 +677,27 @@ function crossEdgeBlur(stc_e, direction, data) {
     return interp_list;
 }
 function oneDimensionalGaussian(stc_e, interp_list) {
-    let mid = Math.floor(stc_e / 2);
     let kernel = [];
-    if (stc_e == 3) {
-        kernel = [1, 2, 1];
+    let kernel_size = getKernelSize(stc_e);
+    let mid = Math.floor(kernel_size / 2);
+    let kernelSum = 0;
+    for (let x = -mid; x <= mid; x++) {
+        let distance = Math.abs(x);
+        let root = (1 / (Math.sqrt(2 * Math.PI * stc_e * stc_e)));
+        let power = -(distance * distance) / (2 * stc_e * stc_e);
+        let epsi = Math.pow(Math.E, power);
+        let gValue = root * epsi;
+        kernel.push(gValue);
+        kernelSum += gValue;
     }
-    else {
-        kernel = [1, 5, 10, 10, 5, 1];
-    }
-    let sum = 0;
-    if (stc_e == 3) {
-        sum = 4;
-    }
-    else {
-        sum = 32;
-    }
-    // for(let x = -mid; x <= mid; x++){
-    //     let distance = Math.abs(x);
-    //     let root = (1/(Math.sqrt(2*Math.PI*stc_e*stc_e)));
-    //     let power = -(distance*distance)/(2*stc_e*stc_e);
-    //     let epsi = Math.pow(Math.E, power);
-    //     let gValue = root*epsi;
-    //     sum = sum + gValue; 
-    //     kernel.push(gValue);
-    // }
-    let gaussianSum = 0;
-    // for(let i = 0; i < kernel.length; i++){
-    //     let gaussianValue = kernel[i]/sum;
-    //     gaussianSum = gaussianSum + (gaussianValue*interp_list[i]); 
-    // }
-    // for(let i = 0; i < kernel.length; i++){
-    //     let gaussianValue = kernel[i]/sum;
-    //     gaussianSum = gaussianSum + (gaussianValue*interp_list[i]); 
-    // }
     for (let i = 0; i < kernel.length; i++) {
-        let gaussianValue = kernel[i] * interp_list[i];
-        gaussianSum += gaussianValue;
+        kernel[i] = kernel[i] / kernelSum;
     }
-    return gaussianSum / sum;
+    let gaussianValue = 0;
+    for (let i = 0; i < kernel.length; i++) {
+        gaussianValue += kernel[i] * interp_list[i];
+    }
+    return gaussianValue;
 }
 function generateDog({ msg, payload }) {
     // let std_c = 0.1; //standard deviation of sobel gaussian blur
@@ -717,6 +725,8 @@ function generateDog({ msg, payload }) {
     let I_X2 = new cv.Mat();
     let I_Y2 = new cv.Mat();
     let I_XY = new cv.Mat();
+    let mat1 = new cv.Mat();
+    let mat2 = new cv.Mat();
     //CONVERT TO GRAY SCALE
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
     //input, output, depth, orderx, ordery, kernel size
@@ -727,54 +737,106 @@ function generateDog({ msg, payload }) {
     I_XY = I_X.mul(I_Y, 1);
     let rows = src.rows;
     let cols = src.cols;
-    let ksize = new cv.Size(9, 9);
+    let kernelSize = getKernelSize(std_c);
+    let ksize = new cv.Size(kernelSize, kernelSize);
     cv.GaussianBlur(I_X2, E, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_XY, F, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_Y2, G, ksize, std_c, cv.BORDER_DEFAULT);
     // (E+G +- sqrt( (E-G)^2 + 4F^2)  )/2
     let newImage = new cv.Mat(rows, cols, src.type());
+    let firstKernelSize = getKernelSize(std_e);
+    let secondKernelSize = getKernelSize((std_e * k));
+    let ksizeFirst = new cv.Size(firstKernelSize, firstKernelSize);
+    let ksizeSecond = new cv.Size(secondKernelSize, secondKernelSize);
+    cv.GaussianBlur(src, mat1, ksizeFirst, std_e, cv.BORDER_DEFAULT);
+    cv.GaussianBlur(src, mat2, ksizeSecond, (std_e * k), cv.BORDER_DEFAULT);
+    // for(var y = 0; y < mat1.rows; y++ ){
+    //     for(var x = 0; x < mat2.cols; x++){
+    //         let first = mat1.ucharPtr(y,x)[0];
+    //         let second = mat2.ucharPtr(y,x)[0];
+    //         let pixel = ((1 + t) * first) - (t * second); 
+    //         let image_index = ((y * imageWidth) + x) * 4;
+    //         let difference_of_gaussians = 0;
+    //         if(pixel > e_thresh){
+    //             difference_of_gaussians = 255;
+    //         }else{
+    //             let tangentFunction = 1 + Math.tanh(o * (pixel - e_thresh));
+    //             difference_of_gaussians = Math.round(tangentFunction * 255);
+    //             // difference_of_gaussians = 255;
+    //         }
+    //         image_data[image_index] = difference_of_gaussians;
+    //         image_data[image_index + 1] = difference_of_gaussians;
+    //         image_data[image_index + 2] = difference_of_gaussians;
+    //         image_data[image_index + 3] = 255;
+    //     }
+    // }
+    let directions = Math.PI / 2;
     for (var y = 0; y < rows; y++) {
         for (var x = 0; x < cols; x++) {
-            let e = E.doublePtr(y, x)[0];
-            let f = F.doublePtr(y, x)[0];
-            let g = G.doublePtr(y, x)[0];
-            let EGSquare = (e - g) * (e - g);
-            let FSquare = f * f;
-            let rootbytwo = (Math.sqrt(EGSquare + (4 * FSquare))) / 2;
-            let lambdaOne = (e + g) + rootbytwo;
-            // let lambdaTwo = (e + g) - rootbytwo;
-            let eigenvector = [lambdaOne - e, -f];
-            let directionRadians = Math.atan2(eigenvector[1], eigenvector[0]);
-            // let directionDegrees = (Math.atan2(eigenvector[1], eigenvector[0]) * 180) / Math.PI;
-            // if(directionDegrees < 0){
-            //     directionDegrees = directionDegrees + 360; 
-            // }
-            // let directionDifference = (directionDegrees * 0.70);
-            // let pixel = newImage.ucharPtr(y, x);
-            let interp_list_primary = crossEdgeBlur(std_e, directionRadians, imageData);
+            let interp_list_primary = crossEdgeBlur(std_e, directions, imageData);
             let primaryGaussianValue = oneDimensionalGaussian(std_e, interp_list_primary);
-            let interp_list_secondary = crossEdgeBlur((std_e * k), directionRadians, imageData);
+            let interp_list_secondary = crossEdgeBlur((std_e * k), directions, imageData);
             let secondaryGaussianValue = oneDimensionalGaussian((std_e * k), interp_list_secondary);
-            let difference_of_gaussians = (1 + t) * primaryGaussianValue - (t) * secondaryGaussianValue;
-            // let difference_of_gaussians = primaryGaussianValue - secondaryGaussianValue;
-            //u>=e
-            //1 + tanh(o + (u - e))
-            if (difference_of_gaussians >= e_thresh) {
-                difference_of_gaussians = 255;
+            let difference_of_gaussians = ((1 + t) * primaryGaussianValue) - ((t) * secondaryGaussianValue);
+            difference_of_gaussians = Math.abs(difference_of_gaussians);
+            let image_index = ((y * imageWidth) + x) * 4;
+            let final = 0;
+            if (difference_of_gaussians > e_thresh) {
+                final = 255;
             }
             else {
-                difference_of_gaussians = (1 + Math.tanh(o * (difference_of_gaussians - e))) * 255;
-                // difference_of_gaussians = 0;
+                // let tangentFunction = 1 + Math.tanh(o * (difference_of_gaussians - e_thresh));
+                // final = Math.round(tangentFunction * 255);
+                // difference_of_gaussians = 255;
+                final = 0;
             }
-            let image_index = ((y * imageWidth) + x) * 4;
-            image_data[image_index] = difference_of_gaussians;
-            image_data[image_index + 1] = difference_of_gaussians;
-            image_data[image_index + 2] = difference_of_gaussians;
+            image_data[image_index] = final;
+            image_data[image_index + 1] = final;
+            image_data[image_index + 2] = final;
             image_data[image_index + 3] = 255;
-            // pixel[0] = Math.floor(directionDifference);
         }
     }
+    // for(var y = 0; y < rows; y++ ){
+    //     for(var x = 0; x < cols; x++)
+    //         { 
+    //             let e = E.doublePtr(y,x)[0];
+    //             let f = F.doublePtr(y,x)[0];
+    //             let g = G.doublePtr(y,x)[0];
+    //             let EGSquare = (e-g) * (e-g);
+    //             let FSquare = f * f;
+    //             let rootbytwo = (Math.sqrt(EGSquare + (4*FSquare)));
+    //             // let lambdaOne =  ((e + g) + rootbytwo)/2;
+    //             let lambdaOne = ((e + g) - rootbytwo)/2;
+    //             let eigenvector = [lambdaOne - e, -f];
+    //             let directionRadians = Math.atan2(eigenvector[1], eigenvector[0]);
+    //             // let directionDegrees = (Math.atan2(eigenvector[1], eigenvector[0]) * 180) / Math.PI;
+    //             // let pixel = newImage.ucharPtr(y, x);
+    //             let interp_list_primary = crossEdgeBlur(std_e, directionRadians, imageData);
+    //             let primaryGaussianValue = oneDimensionalGaussian(std_e, interp_list_primary);
+    //             let interp_list_secondary = crossEdgeBlur((std_e * k), directionRadians, imageData);
+    //             let secondaryGaussianValue = oneDimensionalGaussian((std_e * k), interp_list_secondary);
+    //             let difference_of_gaussians = ((1 + t)*primaryGaussianValue) - ((t) * secondaryGaussianValue);
+    //             // let difference_of_gaussians = primaryGaussianValue - secondaryGaussianValue;
+    //             //u>=e
+    //             //1 + tanh(o + (u - e))
+    //             let final = 0;
+    //             if(difference_of_gaussians >= e_thresh){
+    //                 final = 255;
+    //             }else{
+    //                 let tangentFunction = 1 + Math.tanh(o * (difference_of_gaussians - e_thresh));
+    //                 final = Math.round(tangentFunction * 255);
+    //                 // final = 0;
+    //             }
+    //             let image_index = ((y * imageWidth) + x) * 4;
+    //             image_data[image_index] = final;
+    //             image_data[image_index + 1] = final;
+    //             image_data[image_index + 2] = final;
+    //             image_data[image_index + 3] = 255;
+    //             // pixel[0] = Math.floor(directionDifference);
+    //         }
+    // }
     const clampedArray = new ImageData(image_data, imageWidth);
+    // let clampedArray = imageDataFromMat(src);
     postMessage({ msg, payload: clampedArray });
     I_X.delete();
     I_Y.delete();
@@ -785,12 +847,9 @@ function generateDog({ msg, payload }) {
     F.delete();
     G.delete();
     src.delete();
+    mat1.delete();
+    mat2.delete();
 }
-/**
- *  Here we will check from time to time if we can access the OpenCV
- *  functions. We will return in a callback if it has been resolved
- *  well (true) or if there has been a timeout (false).
- */
 var loaded = false;
 function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
     if (cv.Mat) {
