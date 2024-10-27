@@ -8,11 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-//add variance to each filter
-//construction: repeated or not repeated, variance with object placement, allow overlap with objects?
-//steps:
-//1. grab objects and place them on scene
-//2. for each pixel in an object, calculate LBP value (unless its an edge), kmeans value
+//add draggable event on main canvas
+//grab x_bound and y_bound boundaries of selected square, make of copy of image data representing that square
+//draw rectangle to image showing visual feedback
+//have every algorithm point to selected square image data except for objects which points to canny
+//with generate algorithm, run through original image, and if current x,y is within bounds of x,y bound, use
+//selected square data instead
+//when user selects another region, updates all variables, only one square at a time
 let cannyButton = document.getElementById("canny-button");
 let cannyCanvas = document.getElementById("canny-canvas");
 let cannySelectSource = document.getElementById("canny-select-source");
@@ -22,6 +24,7 @@ let cannyMaxOutput = document.getElementById("canny-max-output");
 let cannyMinOutput = document.getElementById("canny-min-output");
 let kmeansButton = document.getElementById("kmeans-button");
 let kmeansCanvas = document.getElementById("kmeans-canvas");
+let kmeansSelectSource = document.getElementById("kmeans-select-source");
 let objectsButton = document.getElementById("objects-detect-button");
 let objectsCanvas = document.getElementById("objects-canvas");
 let objectsThresholdButton = document.getElementById("objects-threshold-button");
@@ -36,6 +39,9 @@ let dogkInput = document.getElementById("dog-k-input");
 let dogtInput = document.getElementById("dog-t-input");
 let dogoInput = document.getElementById("dog-o-input");
 let dogeInput = document.getElementById("dog-e-input");
+let dogstdmInput = document.getElementById("dog-stdm-input");
+let dogColorType = document.getElementById("dog-color-type");
+let dogSelectSource = document.getElementById("dog-select-source");
 let generateButton = document.getElementById("generate-button");
 let generateCanvas = document.getElementById("generate-canvas");
 let kmeansNumColors = document.getElementById("kmeans-num-colors");
@@ -81,14 +87,25 @@ function dogClick() {
         dogCanvas.style.animationPlayState = "running";
         let std_e = parseFloat(dogstdeInput.value);
         let std_c = parseFloat(dogstdcInput.value);
+        let std_m = parseFloat(dogstdmInput.value);
         let k = parseFloat(dogkInput.value);
         let t = parseFloat(dogtInput.value);
         let o = parseFloat(dogoInput.value);
         let e = parseFloat(dogeInput.value);
-        const image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        let colorType = dogColorType.value == "bw" ? 1 : 0;
+        let image = 0;
+        if (dogSelectSource.value == "kMeans") {
+            image = kmeansCanvas.getContext("2d").getImageData(0, 0, kmeansCanvas.width, kmeansCanvas.height);
+        }
+        else if (dogSelectSource.value == "self") {
+            image = dogCanvas.getContext("2d").getImageData(0, 0, dogSelectSource.width, dogSelectSource.height);
+        }
+        else {
+            image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        }
         yield cv.load();
         // Processing image
-        const processedImage = yield cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e]);
+        const processedImage = yield cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e, std_m, colorType]);
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
         dogCanvas.height = image_height;
         dogCanvas.width = image_width;
@@ -101,7 +118,16 @@ function kmeansClick() {
     return __awaiter(this, void 0, void 0, function* () {
         kmeans_num_colors = parseInt(kmeansNumColors.value);
         kmeansCanvas.style.animationPlayState = "running";
-        const image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        let image = 0;
+        if (kmeansSelectSource.value == "dog") {
+            image = dogCanvas.getContext("2d").getImageData(0, 0, dogCanvas.width, dogCanvas.height);
+        }
+        else if (kmeansSelectSource.value == "self") {
+            image = kmeansCanvas.getContext("2d").getImageData(0, 0, kmeansCanvas.width, kmeansCanvas.height);
+        }
+        else {
+            image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        }
         // const image = dummyctx.getImageData(0,0, dummyCanvas.width, hiddenCanvas.height);
         // Load the model
         yield cv.load();
@@ -124,6 +150,12 @@ function cannyClick() {
             let image = 0;
             if (cannySelectSource.value == "kMeans") {
                 image = kmeansCanvas.getContext("2d").getImageData(0, 0, kmeansCanvas.width, kmeansCanvas.height);
+            }
+            else if (cannySelectSource.value == "dog") {
+                image = dogCanvas.getContext("2d").getImageData(0, 0, dogCanvas.width, dogCanvas.height);
+            }
+            else if (cannySelectSource.value == "self") {
+                image = cannyCanvas.getContext("2d").getImageData(0, 0, cannyCanvas.width, cannyCanvas.height);
             }
             else {
                 image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
@@ -166,8 +198,10 @@ function generateClick() {
     });
 }
 cannyMaxSlider.addEventListener("input", (e) => {
-    cannyMaxOutput.textContent = e.target.value;
+    let num = parseInt(e.target.value) / 10;
+    cannyMaxOutput.textContent = num.toString();
 });
 cannyMinSlider.addEventListener("input", (e) => {
-    cannyMinOutput.textContent = e.target.value;
+    let num = parseInt(e.target.value) / 10;
+    cannyMinOutput.textContent = num.toString();
 });

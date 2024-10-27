@@ -12,7 +12,6 @@ function cannyProcess({ msg, payload }) {
     let dst = new cv.Mat();
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
     cv.Canny(src, dst, payload[1], payload[2], 3, false);
-    console.log(dst.data);
     postMessage({ msg, payload: imageDataFromMat(dst) });
 }
 function objectsFill({ msg, payload }) {
@@ -366,9 +365,6 @@ function pixelFillValid(data, dataIndex, distanceThreshold, axis) {
             secondFound = true;
         }
     }
-    // if(!(calculatedDistance <= distanceThreshold)){
-    //     console.log("HE");
-    // }
     //don't let pixel fill pass if distance is less than given threshold !(true) = false
     //let pixel fill pass if distance is greater than threshold !(false) = true
     //let pixel fill pass if last first pixel or last second pixel is same color and current color
@@ -474,9 +470,6 @@ function generateProcess({ msg, payload }) {
                 //if the displaced pixel is out of bounds, just skip its calculations
                 if (data_index == -1)
                     continue;
-                // image_data[object[j]] = most_common_color[0];
-                // image_data[object[j] + 1] = most_common_color[1];
-                // image_data[object[j] + 2] = most_common_color[2];
                 if (!allow_overlap && image_data[data_index] !== 0) {
                     i--;
                     break;
@@ -501,25 +494,13 @@ function generateProcess({ msg, payload }) {
                 pixelG = Math.min((kMeansData[object[j] + 1] + boost), 255);
                 pixelB = Math.min((kMeansData[object[j] + 2] + boost), 255);
             }
-            // let pixelA = cannyPixel == 0 ? LBPPixel:255;
             let pixelA = 255;
-            // let redRatio = kMeansData[object[j]]/LBPPixel;
-            // let greenRatio = kMeansData[object[j] + 1]/LBPPixel;
-            // let blueRatio = kMeansData[object[j] + 2]/LBPPixel;
-            // let newLBP = color_box_values.reduce(function(prev, curr) {
-            //     return (Math.abs(curr - LBPPixel) < Math.abs(prev - LBPPixel) ? curr : prev);
-            // });
-            // let pixelR = parseInt(newLBP * redRatio);
-            // let pixelG = parseInt(newLBP * greenRatio);
-            // let pixelB = parseInt(newLBP * blueRatio);
             image_data[data_index] = pixelR;
             image_data[data_index + 1] = pixelG;
             image_data[data_index + 2] = pixelB;
             image_data[data_index + 3] = pixelA;
         }
     }
-    // console.log(image_data); 
-    // console.log(cannyData); 
     for (let i = 0; i < image_data.length; i += 4) {
         if ((image_data[i + 3]) == 0) {
             image_data[i + 3] = 255;
@@ -708,10 +689,7 @@ function crossEdgeBlur(stc_e, direction, data, x_center, y_center) {
 //     }
 //     return gaussianValue;
 //   }
-function getInterp(std_m, direction, data, directions, x_center, y_center, reverse) {
-    if (y_center == 50 && x_center == 580 && reverse == false) {
-        console.log(x_center);
-    }
+function getInterp(std_m, direction, data, directions, x_center, y_center, reverse, step_size) {
     let kernelSize = getKernelSize(std_m);
     let mid = Math.floor(kernelSize / 2);
     let minY = y_center - mid;
@@ -729,10 +707,12 @@ function getInterp(std_m, direction, data, directions, x_center, y_center, rever
     let y = y_center;
     let interp_list = [];
     while (true) {
-        let x_offset = Math.cos(currDirection);
-        let y_offset = Math.sin(currDirection);
-        x += x_offset;
-        y += y_offset;
+        let x_cos = Math.cos(direction);
+        x_cos = parseFloat(x_cos.toFixed(2));
+        let y_sin = Math.sin(direction);
+        y_sin = parseFloat(y_sin.toFixed(2));
+        x += x_cos;
+        y += y_sin;
         let x_valid = x >= minX && x <= maxX;
         let y_valid = y >= minY && y <= maxY;
         if (!(x_valid && y_valid)) {
@@ -861,19 +841,19 @@ function generateDog({ msg, payload }) {
     // let e = 50; //minimum threshold (0-255)
     let std_c = payload[3];
     let std_e = payload[2];
-    let std_m = 2;
     let k = payload[4];
     let t = payload[5];
     let o = payload[6];
     let e_thresh = payload[7];
+    let std_m = payload[8];
+    let colorType = payload[9];
     let image_data_difference = payload[0].data;
     let src = cv.matFromImageData(payload[0]);
     let masterImageData = structuredClone(payload[0].data);
     let image_data_integral = structuredClone(payload[0].data);
+    let image_data_aliasing = structuredClone(payload[0].data);
     imageWidth = payload[1];
     imageHeight = ((payload[0].data.length) / 4) / imageWidth;
-    console.log(imageWidth);
-    console.log(imageHeight);
     let directions = [];
     let I_X = new cv.Mat();
     let I_Y = new cv.Mat();
@@ -887,7 +867,6 @@ function generateDog({ msg, payload }) {
     // let mat2 = new cv.Mat(); 
     //CONVERT TO GRAY SCALE
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
-    console.log("original image data: ", src.data);
     //input, output, depth, orderx, ordery, kernel size
     cv.Sobel(src, I_X, cv.CV_64F, 1, 0, 3, cv.BORDER_DEFAULT);
     cv.Sobel(src, I_Y, cv.CV_64F, 0, 1, 3, cv.BORDER_DEFAULT);
@@ -954,40 +933,12 @@ function generateDog({ msg, payload }) {
             let lambda = lambdaOne > lambdaTwo ? lambdaOne : lambdaTwo;
             let eigenvector = [lambdaOne - e, -f];
             let eigenvectorTwo = [lambdaTwo - e, -f];
-            // let eigenvectorMost = lambdaOne > lambdaTwo ? eigenvector: eigenvectorTwo;
-            let eigenVectorLeast = eigenvectorTwo;
-            if (lambdaOne > lambdaTwo) {
-                eigenVectorMost = eigenVector;
-            }
-            else {
-                eigenVectorMost = eigenvectorTwo;
-                eigenVectorLeast = eigenvector;
-            }
-            let directionRadians = Math.atan2(eigenvectorMost[0], eigenvectorMost[1]);
-            let directionRadiansLeast = Math.atan2(eigenvectorLeast[0], eigenvectorLeast[1]);
+            let eigenVectorMost = lambdaOne > lambdaTwo ? eigenvector : eigenvectorTwo;
+            let eigenVectorLeast = lambdaOne > lambdaTwo ? eigenvectorTwo : eigenvector;
+            let directionRadians = Math.atan2(eigenVectorMost[0], eigenVectorMost[1]);
+            let directionRadiansLeast = Math.atan2(eigenVectorLeast[0], eigenVectorLeast[1]);
             directions.push(directionRadiansLeast);
             // let directionDegrees = (directionRadians * 180) / Math.PI;
-            // if(y == 0){
-            //     if(x == 11){
-            //         console.log("direction r/g for ", x , y, " : ", directionRadians, directionDegrees);
-            //         console.log("degrees first second: ", directionDegreesOne, directionDegreesTwo);
-            //         console.log("***************************");
-            //     }
-            // }else if(y == 1){
-            //     if(x == 1 || x == 3 || x == 14 || x == 7){
-            //         console.log("direction radians for ", x , y, " : ", directionRadians, directionDegrees);
-            //         console.log("degrees first second: ", directionDegreesOne, directionDegreesTwo);
-            //         console.log("***************************");
-            //     }
-            // }else if(y == 4 && x == 2){
-            //     console.log("direction radians for ", x , y, " : ", directionRadians, directionDegrees);
-            //     console.log("degrees first second: ", directionDegreesOne, directionDegreesTwo);
-            //     console.log("***************************");
-            // }
-            // if(directionDegrees < 0) directionDegrees+=360;
-            // directionDegrees = directionDegrees * 0.70;
-            //right
-            // directions.doublePtr(y,x)[0] = directionRadians;
             let interp_list_primary = crossEdgeBlur(std_e, directionRadians, masterImageData, x, y);
             let primaryGaussianValue = oneDimensionalGaussian(std_e, interp_list_primary);
             let interp_list_secondary = crossEdgeBlur((std_e * k), directionRadians, masterImageData, x, y);
@@ -997,15 +948,14 @@ function generateDog({ msg, payload }) {
             let image_index = ((y * imageWidth) + x) * 4;
             // let final = difference_of_gaussians;
             let final = difference_of_gaussians;
-            if (difference_of_gaussians > e_thresh) {
-                final = 255;
-            }
-            else {
-                let tangentFunction = 1 + Math.tanh(o * (difference_of_gaussians - e_thresh));
-                final = Math.round(tangentFunction * 255);
-                // // difference_of_gaussians = 255;
-                // final = 0;
-            }
+            // if(difference_of_gaussians > e_thresh){
+            //     final = 255;
+            // }else{
+            //     let tangentFunction = 1 + Math.tanh(o * (difference_of_gaussians - e_thresh));
+            //     final = Math.round(tangentFunction * 255);
+            //     // // difference_of_gaussians = 255;
+            //     // final = 0;
+            // }
             image_data_difference[image_index] = final;
             image_data_difference[image_index + 1] = final;
             image_data_difference[image_index + 2] = final;
@@ -1021,38 +971,72 @@ function generateDog({ msg, payload }) {
     //-2.586949 - -2.125439 bottomLeft corner
     // -2.1254398 -1.0161528 bottom
     //-1.0161528 - -0.5546436 bottomRight corner 
+    for (var y = 0; y < rows; y++) {
+        for (var x = 0; x < cols; x++) {
+            let image_index = ((y * imageWidth) + x) * 4;
+            let direction = directions[image_index / 4];
+            let pixel = image_data_difference[image_index];
+            let backwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, true);
+            let forwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, false);
+            let backwardListReverse = backwardList.reverse();
+            backwardListReverse.push(pixel);
+            let interpolation_list = backwardListReverse.concat(forwardList);
+            if (interpolation_list.length % 2 == 0)
+                interpolation_list.push(0);
+            let std_gaussian = (interpolation_list.length - 1) / 2;
+            let gaussian_weighted_value = oneDimensionalGaussian(std_gaussian, interpolation_list);
+            let final = gaussian_weighted_value;
+            if (gaussian_weighted_value > e_thresh) {
+                final = 255;
+            }
+            else {
+                let tangentFunction = 1 + Math.tanh(o * (gaussian_weighted_value - e_thresh));
+                final = Math.round(tangentFunction * 255);
+            }
+            let gaussianNormalized = final / 255;
+            let finalR = final;
+            let finalG = final;
+            let finalB = final;
+            if (colorType == 0) {
+                finalR = masterImageData[image_index] * gaussianNormalized;
+                finalG = masterImageData[image_index + 1] * gaussianNormalized;
+                finalB = masterImageData[image_index + 2] * gaussianNormalized;
+                finalA = 255;
+            }
+            image_data_integral[image_index] = finalR;
+            image_data_integral[image_index + 1] = finalG;
+            image_data_integral[image_index + 2] = finalB;
+            image_data_integral[image_index + 3] = 255;
+        }
+    }
     // for(var y = 0; y < rows; y++){
     //     for(var x = 0; x < cols; x++){
     //         let image_index = ((y * imageWidth) + x) * 4;
     //         let direction = directions[image_index/4];
-    //         let pixel = image_data_difference[image_index];
-    //         let backwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, true);
-    //         let forwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, false);
+    //         let pixel = image_data_integral[image_index];
+    //         let backwardList = getInterp(std_m, direction, image_data_integral, directions, x, y, true);
+    //         let forwardList = getInterp(std_m, direction, image_data_integral, directions, x, y, false);
     //         let backwardListReverse = backwardList.reverse();
     //         backwardListReverse.push(pixel);
     //         let interpolation_list = backwardListReverse.concat(forwardList);
     //         if(interpolation_list.length % 2 == 0) interpolation_list.push(0);
     //         let std_gaussian = (interpolation_list.length - 1)/2;
-    //         //3 -> 1 -> 3
-    //         //5 -> 2 -> 5
-    //         //7 -> 3 -> 7
-    //         //9 -> 4 -> 9
-    //         //11 -> 5 -> 11
     //         let gaussian_weighted_value = oneDimensionalGaussian(std_gaussian, interpolation_list);
     //         let final = 0;
-    //         if(gaussian_weighted_value > e_thresh){
-    //             final = 255;
-    //         }else{
-    //             let tangentFunction = 1 + Math.tanh(o * (gaussian_weighted_value - e_thresh));
-    //             final = Math.round(tangentFunction * 255);
-    //         }
-    //         image_data_integral[image_index] = final;
-    //         image_data_integral[image_index + 1] = final;
-    //         image_data_integral[image_index + 2] = final;
-    //         image_data_integral[image_index + 3] = 255;
+    //         // if(gaussian_weighted_value > e_thresh){
+    //         //     final = 255;
+    //         // }else{
+    //         //     let tangentFunction = 1 + Math.tanh(o * (gaussian_weighted_value - e_thresh));
+    //         //     final = Math.round(tangentFunction * 255);
+    //         // }
+    //         let color = gaussian_weighted_value / 255;
+    //         image_data_aliasing[image_index] = final;
+    //         image_data_aliasing[image_index + 1] = final;
+    //         image_data_aliasing[image_index + 2] = final;
+    //         image_data_aliasing[image_index + 3] = 255;
     //     }
     // }
-    const clampedArray = new ImageData(image_data_difference, imageWidth);
+    const clampedArray = new ImageData(image_data_integral, imageWidth);
     // let clampedArray = imageDataFromMat(I_X);
     postMessage({ msg, payload: clampedArray });
     I_X.delete();

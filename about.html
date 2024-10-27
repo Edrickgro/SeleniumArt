@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="about.css">
+
+    <title>About</title>
+
+</head>
+
+<body>
+
+    <div id = "main">
+        <a href="index.html">Back to Home</a>
+
+        <section>
+            
+            <h1>What</h1>
+
+            <div>
+                <p>
+                    A project made during my free time that allows users to make art by uploading images and editing them
+                    through various algorithms using vanilla JS and OpenCv. The "dog" algorithm is based on a research paper (linked below)
+                    and is by far the most complicated algorithm.
+                    
+                    <br>
+                    <br>
+
+                    Please note that there are certain bugs that have not been fixed.
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h1>How to Use</h1>
+
+
+            <div>
+
+                <p>Start by uploading a file. Only JPGs and PNGs are accepted. TIP: Lower quality images (less than 1000 pixels per side) can
+                    produce faster and better results</p>
+
+            </div>
+
+            <div>
+
+            <p>Next, run an algorithm of choice, changing the variables to obtain different results. Recommended order is top down: </p>
+            </div>
+
+            
+            <h3>DoG</h3>
+
+            <div>
+
+                <p>
+                    The most computationally and logically complex algorithm but it provides a good base for the others, which is why it comes first. This
+                    algorithm is great for mimicking art styles such as pastels and graphite.
+                    <br>
+                    <br>
+    
+                    Standard deviations: (0.1 to 20). 
+                    <br>
+                    Low = low blur, low compute cost. High = high blur, high compute cost
+                    <br>
+                    <br>
+                    
+                    <b>STD_C</b>: initial blur strength, LOW impact
+    
+                    <br>
+                    <br>
+    
+                    <b>STD_E</b>: blur ACROSS edges, HIGH impact
+    
+                    <br>
+                    <br>
+    
+                    <b>STD_M</b>: blur ALONG edges, HIGH impact
+    
+                    <br>
+                    <br>
+    
+                    <b>k</b>: factor for second blur (k * STD_E), MEDIUM impact
+                    <br>
+                    <br>
+    
+                    <b>t</b>: "sharpness": (1 + t)(first blur) - (t)(second blur), MEDIUM impact
+                    <br>
+                    <br> 
+    
+                    <b>e</b>: if pixel value greater than e, white (255), HIGH impact
+                    
+                    <br>
+                    <br>
+    
+                    <b>o</b>: if less than e, pass through formula, lower = more gradients/colors  HIGH impact
+    
+                    <br>
+                    <br>
+                    Examples using 600x375 and 500x754 images and default settings:
+    
+                    <br>
+                    <br>
+                
+                </p>
+
+                <div id = image-container>
+
+                    <img src = "tswiftdog.png" alt = "taylor swift dog example">
+                    <img src = "vanessadog.png" alt = "vanessa zamora dog example">
+
+                </div> 
+
+            </div>
+
+            <h3>Local Binary Pattern</h3>
+
+            <div>
+
+                <p>
+                    The fastest and simplest algorithm. It extracts the texture of the image
+                </p>
+
+            </div>
+
+            <h3>Canny</h3>
+
+            <div>
+                <p>
+                    Detects edges using the Canny algorithm. The variables are for intensity gradient thresholding. 
+                    <br>
+                    <br>
+                    <b>Below minimum</b>: for sure
+                    not an edge. 
+                    <br>
+                    <br>
+                    <b>Above maximum</b>
+                    : definitely an edge. 
+
+                    <br>
+                    <br>
+                    <b>In between</b>
+                    : an edge IF and ONLY IF connected to an above maximum edge.
+                </p>
+            </div>
+
+            <h3>Object</h3>
+
+            <div>
+                <p>
+                    Uses the Canny data to detect objects using a flood fill algorithm. It fills every non-edge pixel it can find until it can no longer
+                    find any. This process is repeated for every pixel. The thresholds allows you to account for an impurities and discontinuities found
+                    in the Canny data.
+
+                    <br>
+                    <br>
+
+                    <b>Background TH</b>: for objects detected to be part of background, don't visit pixels whose distance between the nearest edges is less
+                    than this.
+
+                    <br>
+                    <br>
+                    
+                    <b>Object TH</b>: same as Background TH but for objects
+
+                    <br>
+                    <br>
+
+                    <b>Pixel TH</b>: discard any objects that are less than this many pixels
+
+                    <br>
+                    <br>
+
+                    <b>Strict Background</b>: if 1, don't count any background pixels as objects (blue colored), if 0 count background pixel as object
+                </p>
+            </div>
+
+            <h3>Kmeans</h3>
+
+            <div>
+                <p>
+                    kmeans reduces the whole image to a specified number of colors. It evaluates each pixel value and finds the nearest color that fits
+                    the number of colors
+
+                    <br>
+                    <br>
+
+                    <b>Num Colors</b>: number of different colors for final image to have
+                </p>
+            </div>
+
+            <h3>Generate</h3>
+
+            <div>
+                <p>
+                    Combines the LBP, Object, and Kmeans data to generate a final image. LBP is used for texture and Kmeans is used for colors.
+
+                    <br>
+                    <br>
+
+                    <b>variance</b>: moves all objects detected by a random amount between 0 and variance
+
+                    <br>
+                    <br>
+
+                    <b>texture</b>: amount of texture to apply (higher is more texture added from LBP)
+
+                    <br>
+                    <br>
+
+                    <b>num pixels TH</b>: detects objects with less than this amount of pixels and is used with factor
+
+                    <br>
+                    <br>
+
+                    <b>factor</b>: moves detected objects from num pixels TH by variance divided by factor
+
+                    <br>
+                    <br>
+
+                    <b>Empty Fill</b>: fills pixels where objects previously were with black or most common color found in original image
+
+                    <br>
+                    <br>
+                </p>
+            </div>
+            
+
+            <div>
+
+                <p>To save an image, right click and open image in a new tab. Right image and choose "save as"
+                </p>
+    
+                <p>Note that the Canny algorithm must have been run BEFORE the Objects algorithm</p>
+
+
+            </div>
+            
+        </section>
+
+        <section>
+            <h1>How it was made</h1>
+
+            <div>
+
+                <p>This project is done entirely in JavaScript (partially TypeScript) and OpenCV.js.</p>
+            <p>The hardest part of the project was working without a framework and using OpenCV.js which notoriously lacks documentation</p>
+            <p>Moreover, JavaScript Canvas stores data in flat 8 bit arrays, which is not sufficient for complex algorithms. This is where OpenCv comes</p>
+            <p>The opencv.js file is loaded locally and saved into a Web Worker. Web Workers allow an algorithm to run on a different thread and
+                allows the main thread to continue running. Communication between the Web Worker and the main thread is faciliated through a script called
+                "cv.js".
+            </p>
+
+            </div>
+
+
+            <div>
+
+                <p>
+                    The Local Binary Pattern algorithm is implemented independently from the OpenCV library and is stored in its own file 
+                </p>
+    
+                <p>The <a href="https://en.wikipedia.org/wiki/K-means_clustering">kMeans</a> and 
+                    <a href ="https://en.wikipedia.org/wiki/Canny_edge_detector">Canny</a> algorithm are implemented using the OpenCV library. 
+                    For the sake of simplicity, only some variables are editable by the user in the interface.</p> 
+                <p>
+                    All the other algorithms are implemented manually using OpenCV's data structures, specifically Mats (matrices) which allow pixel by pixel
+                    manipulation in various depths (64F was used). Using opencv.js allows these matrices to have compatibility with Canvas.
+                </p>
+    
+
+            </div>
+            
+
+           
+            <h4>
+                Local Binary Pattern
+            </h4>
+
+            <div>
+
+                <p><a href="https://en.wikipedia.org/wiki/Local_binary_patterns">LBP</a> is one of many algorithms used in image processing, specifically
+                    for texture classification. In this implementation, for every pixel, the intensity of 8 neighboring pixels is compared with the center pixel.
+                    if the neighbor intensity is greater than the center pixel, a 1 is stored. Otherwise, a 0 is stored. This comparison is done counter clock-wise
+                    resulting in 8 bits or 1 byte. The value of the center pixel is then changed to the integer that the 8 bits represent.
+                    </p>
+
+            </div>
+            
+
+            <h4>
+                Objects
+            </h4>
+
+            <div>
+
+                <p>
+                    The Objects algorithm uses the Canny data and the <a href = "https://en.wikipedia.org/wiki/Flood_fill">Flood Fill algorithm</a> to detect
+                    objects in the image. From every unvisited pixel, a flood fill algorithm is ran, keeping track of all "collected" pixels in the run. When the run is
+                    done (aka it finds itself bound by edges defined in the Canny data), all collected pixels are associated as a single object and given a random color for visual clarity. 
+                    Background and objects are determined separately and during the algorithm depending on whether the origin pixel is connected to the image's
+                    4 boundaries/edges. 
+    
+                    <br>
+                    <br>
+                    The variables allow the user to choose how greedy the algorithm is for the background and objects run. A threshold n prevents the algorithm from visiting a pixel whose
+                    distance from the two closest edges (x direction if horizontal visit is requested and y direction if vertical) is less than or equal to n. A threshold of 0 is the greediest
+                    and allows the algorithm to visit any available non-edge.
+    
+                    <br>
+                    <br>
+    
+                    A more accurate algorithm would involve checking diagonals instead of just x and y directions.
+                </p>
+
+            </div>
+
+            
+
+            <h4>Generate</h4>
+
+            <div>
+
+                <p>
+                    The Generate algorithm combines the data from all the other algorithms except for DoG. It takes all the objects which are stored in an array 
+                    and places all of its pixels by a random direction and a random amount determined by the user. A random direction is chosen for each object. Pixels
+                    that were previously representing objects are filled with either black or the most common color detected in the original image. For each pixel, the LBP data
+                    texture is applied with the alpha channel (RGBa). The color is applied with kMeans data.
+                </p>
+
+            </div>
+
+           
+
+            <h4>Difference of Gaussians (DoG)</h4>
+
+            <div>
+
+                <p>The <a href = "https://en.wikipedia.org/wiki/Difference_of_Gaussians">difference of gaussians</a> algorithm is another algorithm used in image processing. There
+                    are many uses for it but my implementation is a rough implementation of <a href = "https://en.wikipedia.org/wiki/Difference_of_Gaussians">this University of 
+                        Missouri research paper</a> and this <a href = "https://users.cs.northwestern.edu/~sco590/winnemoeller-cag2012.pdf"> NorthWestern paper</a>. Various art styles
+                        can be mimicked by simply altering the various variables, most notably charcoal, water paint, pencil, and comic book. The process of adding color and texture to
+                        the final image can be forever improved. My algorithm is mostly focused on the basic implementation itself. The main principal is calculating two different gaussian
+                        blurs using different standard deviations (std_e and (std_e * k)) and subtracting them using the (1 + t)*(First Gaussian) - (t)*(Second Gaussian) formula. An edge tangent
+                        flow is calculated and then blured (std_c). The difference of gaussian is calculated by using this edge tangent flow and bluring across the edges. 
+        
+                        <br>
+                        <br> 
+        
+                        A final blur (std_m) is the calculated along the edges to reduce noise. 
+                        The resulting value is then set to 1 if its above e. If not, it passed through a formula (o). The lower o is, the more gradients the final image will have.
+        
+                </p>
+
+            </div>
+
+          
+        </section>
+
+        <section>
+            <h2>Social Links</h2>
+            <div>
+
+               
+            <a>LinkedIn</a>
+            <a>GitHub</a>
+
+            </div>
+            
+        </section>
+
+
+
+    </div>
+</body>

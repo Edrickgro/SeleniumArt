@@ -1,7 +1,8 @@
 let canvases = document.querySelectorAll("canvas");
 canvases.forEach((canvas) => {
     let ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#433E0E";
+    // ctx.fillStyle = "#433E0E";
+    ctx.fillStyle = "#dcdcdc";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 });
 let canvas = document.getElementById("image-canvas");
@@ -34,7 +35,7 @@ fileElement.addEventListener("change", (e) => {
             hiddenCanvas.height = img.height;
             hiddenCanvas.getContext("2d").drawImage(img, 0, 0);
             dummyctx.drawImage(img, 0, 0);
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             canvas.style.animationPlayState = "paused";
             dummyImageData = dummyctx.getImageData(0, 0, dummyCanvas.width, dummyCanvas.height);
             dummyData = dummyImageData.data;

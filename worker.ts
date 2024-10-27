@@ -19,8 +19,6 @@ function cannyProcess({ msg, payload }) {
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
     cv.Canny(src, dst, payload[1], payload[2], 3, false);
 
-    console.log(dst.data);
-
     postMessage({ msg, payload: imageDataFromMat(dst)});
 
 }
@@ -530,9 +528,7 @@ function pixelFillValid(data, dataIndex, distanceThreshold, axis){
 
     }
 
-    // if(!(calculatedDistance <= distanceThreshold)){
-    //     console.log("HE");
-    // }
+  
 
     //don't let pixel fill pass if distance is less than given threshold !(true) = false
     //let pixel fill pass if distance is greater than threshold !(false) = true
@@ -680,11 +676,6 @@ function generateProcess({msg, payload}){
                 //if the displaced pixel is out of bounds, just skip its calculations
                 if(data_index == -1) continue;
 
-                // image_data[object[j]] = most_common_color[0];
-                // image_data[object[j] + 1] = most_common_color[1];
-                // image_data[object[j] + 2] = most_common_color[2];
-                
-
                 if(!allow_overlap && image_data[data_index] !== 0){
                     i--; 
                     break;
@@ -720,20 +711,7 @@ function generateProcess({msg, payload}){
             }
             
 
-            // let pixelA = cannyPixel == 0 ? LBPPixel:255;
             let pixelA = 255;
-
-            // let redRatio = kMeansData[object[j]]/LBPPixel;
-            // let greenRatio = kMeansData[object[j] + 1]/LBPPixel;
-            // let blueRatio = kMeansData[object[j] + 2]/LBPPixel;
-
-            // let newLBP = color_box_values.reduce(function(prev, curr) {
-            //     return (Math.abs(curr - LBPPixel) < Math.abs(prev - LBPPixel) ? curr : prev);
-            // });
-
-            // let pixelR = parseInt(newLBP * redRatio);
-            // let pixelG = parseInt(newLBP * greenRatio);
-            // let pixelB = parseInt(newLBP * blueRatio);
 
 
             image_data[data_index] = pixelR;
@@ -745,9 +723,6 @@ function generateProcess({msg, payload}){
             
         }
     }
-
-    // console.log(image_data); 
-    // console.log(cannyData); 
 
     
 
@@ -1018,10 +993,9 @@ function kMeans(payload) {
 //   }
 
 
-  function getInterp(std_m, direction, data, directions, x_center, y_center, reverse){
-    if(y_center==50 && x_center ==580 && reverse == false){
-        console.log(x_center);
-    }
+
+  function getInterp(std_m, direction, data, directions, x_center, y_center, reverse, step_size){
+    
     let kernelSize = getKernelSize(std_m);
     let mid = Math.floor(kernelSize/2);
 
@@ -1044,12 +1018,15 @@ function kMeans(payload) {
     let interp_list = [];
 
     while(true){
-        
-        let x_offset = Math.cos(currDirection);
-        let y_offset = Math.sin(currDirection);
 
-        x+= x_offset;
-        y+=y_offset;
+        let x_cos = Math.cos(direction);
+        x_cos = parseFloat(x_cos.toFixed(2));
+        
+        let y_sin = Math.sin(direction);
+        y_sin = parseFloat(y_sin.toFixed(2));
+
+        x+= x_cos;
+        y+= y_sin;
 
         let x_valid = x >= minX && x <= maxX;
         let y_valid = y >= minY && y <= maxY;
@@ -1216,23 +1193,24 @@ function kMeans(payload) {
 
     let std_c = payload[3];
     let std_e = payload[2];
-    let std_m = 2;
     let k = payload[4];
     let t = payload[5];
     let o = payload[6];
     let e_thresh = payload[7];
+    let std_m = payload[8];
+    let colorType = payload[9];
 
     let image_data_difference = payload[0].data;
     let src = cv.matFromImageData(payload[0]);
 
     let masterImageData: Uint8ClampedArray = structuredClone(payload[0].data);
     let image_data_integral: Uint8ClampedArray = structuredClone(payload[0].data);
+    let image_data_aliasing: Uint8ClampedArray = structuredClone(payload[0].data);
     
     imageWidth = payload[1];
     imageHeight = ((payload[0].data.length)/4) / imageWidth;
 
-    console.log(imageWidth);
-    console.log(imageHeight);
+
 
     let directions = []; 
 
@@ -1250,13 +1228,11 @@ function kMeans(payload) {
     //CONVERT TO GRAY SCALE
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
 
-    console.log("original image data: ", src.data);
 
     //input, output, depth, orderx, ordery, kernel size
     cv.Sobel(src, I_X, cv.CV_64F, 1, 0, 3, cv.BORDER_DEFAULT);
     cv.Sobel(src, I_Y, cv.CV_64F, 0, 1, 3, cv.BORDER_DEFAULT);
 
-   
 
     I_X2 = I_X.mul(I_X, 1);
     I_Y2 = I_Y.mul(I_Y, 1);
@@ -1346,48 +1322,16 @@ function kMeans(payload) {
             let eigenvector = [lambdaOne - e, -f];
             let eigenvectorTwo = [lambdaTwo - e, -f]
 
-            // let eigenvectorMost = lambdaOne > lambdaTwo ? eigenvector: eigenvectorTwo;
-            let eigenVectorLeast = eigenvectorTwo;
+            let eigenVectorMost = lambdaOne > lambdaTwo ? eigenvector: eigenvectorTwo;
+            let eigenVectorLeast = lambdaOne > lambdaTwo ? eigenvectorTwo: eigenvector;
 
-            if(lambdaOne > lambdaTwo){
-                eigenVectorMost = eigenVector;
-            }else{
-                eigenVectorMost = eigenvectorTwo;
-                eigenVectorLeast = eigenvector;
-            }
-            let directionRadians = Math.atan2(eigenvectorMost[0], eigenvectorMost[1]);
-            let directionRadiansLeast = Math.atan2(eigenvectorLeast[0], eigenvectorLeast[1]);
+            
+            let directionRadians = Math.atan2(eigenVectorMost[0], eigenVectorMost[1]);
+            let directionRadiansLeast = Math.atan2(eigenVectorLeast[0], eigenVectorLeast[1]);
             directions.push(directionRadiansLeast);
             // let directionDegrees = (directionRadians * 180) / Math.PI;
 
            
-
-            // if(y == 0){
-            //     if(x == 11){
-            //         console.log("direction r/g for ", x , y, " : ", directionRadians, directionDegrees);
-            //         console.log("degrees first second: ", directionDegreesOne, directionDegreesTwo);
-            //         console.log("***************************");
-            //     }
-            // }else if(y == 1){
-            //     if(x == 1 || x == 3 || x == 14 || x == 7){
-            //         console.log("direction radians for ", x , y, " : ", directionRadians, directionDegrees);
-            //         console.log("degrees first second: ", directionDegreesOne, directionDegreesTwo);
-            //         console.log("***************************");
-            //     }
-            // }else if(y == 4 && x == 2){
-            //     console.log("direction radians for ", x , y, " : ", directionRadians, directionDegrees);
-            //     console.log("degrees first second: ", directionDegreesOne, directionDegreesTwo);
-            //     console.log("***************************");
-            // }
-
-            
-            // if(directionDegrees < 0) directionDegrees+=360;
-            // directionDegrees = directionDegrees * 0.70;
-            //right
-            
-            // directions.doublePtr(y,x)[0] = directionRadians;
-            
-
             let interp_list_primary = crossEdgeBlur(std_e, directionRadians, masterImageData, x, y);
             let primaryGaussianValue = oneDimensionalGaussian(std_e, interp_list_primary);
             let interp_list_secondary = crossEdgeBlur((std_e * k), directionRadians, masterImageData, x, y);
@@ -1401,14 +1345,14 @@ function kMeans(payload) {
             // let final = difference_of_gaussians;
             let final = difference_of_gaussians;
 
-            if(difference_of_gaussians > e_thresh){
-                final = 255;
-            }else{
-                let tangentFunction = 1 + Math.tanh(o * (difference_of_gaussians - e_thresh));
-                final = Math.round(tangentFunction * 255);
-                // // difference_of_gaussians = 255;
-                // final = 0;
-            }
+            // if(difference_of_gaussians > e_thresh){
+            //     final = 255;
+            // }else{
+            //     let tangentFunction = 1 + Math.tanh(o * (difference_of_gaussians - e_thresh));
+            //     final = Math.round(tangentFunction * 255);
+            //     // // difference_of_gaussians = 255;
+            //     // final = 0;
+            // }
 
             image_data_difference[image_index] = final;
             image_data_difference[image_index + 1] = final;
@@ -1428,16 +1372,71 @@ function kMeans(payload) {
     // -2.1254398 -1.0161528 bottom
     //-1.0161528 - -0.5546436 bottomRight corner 
 
+    for(var y = 0; y < rows; y++){
+        for(var x = 0; x < cols; x++){
+            
+
+            let image_index = ((y * imageWidth) + x) * 4;
+            let direction = directions[image_index/4];
+            let pixel = image_data_difference[image_index];
+
+            let backwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, true);
+            let forwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, false);
+
+            let backwardListReverse = backwardList.reverse();
+            backwardListReverse.push(pixel);
+            let interpolation_list = backwardListReverse.concat(forwardList);
+            if(interpolation_list.length % 2 == 0) interpolation_list.push(0);
+
+            let std_gaussian = (interpolation_list.length - 1)/2;
+
+            let gaussian_weighted_value = oneDimensionalGaussian(std_gaussian, interpolation_list);
+            let final = gaussian_weighted_value;
+
+            if(gaussian_weighted_value > e_thresh){
+                final = 255;
+            }else{
+                let tangentFunction = 1 + Math.tanh(o * (gaussian_weighted_value - e_thresh));
+                final = Math.round(tangentFunction * 255);
+                
+            }
+
+            let gaussianNormalized = final / 255;
+
+        
+
+            let finalR = final;
+            let finalG = final;
+            let finalB = final;
+
+            if(colorType == 0){
+
+                finalR = masterImageData[image_index] * gaussianNormalized; 
+                finalG = masterImageData[image_index + 1] * gaussianNormalized; 
+                finalB = masterImageData[image_index + 2] * gaussianNormalized;
+                finalA = 255;
+
+            }
+            
+            image_data_integral[image_index] = finalR;
+            image_data_integral[image_index + 1] = finalG;
+            image_data_integral[image_index + 2] = finalB;
+            image_data_integral[image_index + 3] = 255;
+
+        }
+    }
+
+
     // for(var y = 0; y < rows; y++){
     //     for(var x = 0; x < cols; x++){
             
 
     //         let image_index = ((y * imageWidth) + x) * 4;
     //         let direction = directions[image_index/4];
-    //         let pixel = image_data_difference[image_index];
+    //         let pixel = image_data_integral[image_index];
 
-    //         let backwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, true);
-    //         let forwardList = getInterp(std_m, direction, image_data_difference, directions, x, y, false);
+    //         let backwardList = getInterp(std_m, direction, image_data_integral, directions, x, y, true);
+    //         let forwardList = getInterp(std_m, direction, image_data_integral, directions, x, y, false);
 
     //         let backwardListReverse = backwardList.reverse();
     //         backwardListReverse.push(pixel);
@@ -1446,35 +1445,35 @@ function kMeans(payload) {
 
     //         let std_gaussian = (interpolation_list.length - 1)/2;
             
-    //         //3 -> 1 -> 3
-    //         //5 -> 2 -> 5
-    //         //7 -> 3 -> 7
-    //         //9 -> 4 -> 9
-    //         //11 -> 5 -> 11
 
     //         let gaussian_weighted_value = oneDimensionalGaussian(std_gaussian, interpolation_list);
     //         let final = 0;
 
-    //         if(gaussian_weighted_value > e_thresh){
-    //             final = 255;
-    //         }else{
-    //             let tangentFunction = 1 + Math.tanh(o * (gaussian_weighted_value - e_thresh));
-    //             final = Math.round(tangentFunction * 255);
+    //         // if(gaussian_weighted_value > e_thresh){
+    //         //     final = 255;
+    //         // }else{
+    //         //     let tangentFunction = 1 + Math.tanh(o * (gaussian_weighted_value - e_thresh));
+    //         //     final = Math.round(tangentFunction * 255);
                 
-    //         }
+    //         // }
 
+    //         let color = gaussian_weighted_value / 255;
 
-    //         image_data_integral[image_index] = final;
-    //         image_data_integral[image_index + 1] = final;
-    //         image_data_integral[image_index + 2] = final;
-    //         image_data_integral[image_index + 3] = 255;
+  
+
+    //         image_data_aliasing[image_index] = final;
+    //         image_data_aliasing[image_index + 1] = final;
+    //         image_data_aliasing[image_index + 2] = final;
+    //         image_data_aliasing[image_index + 3] = 255;
 
     //     }
     // }
         
     
+        
+    
     const clampedArray = new ImageData(
-        image_data_difference,
+        image_data_integral,
         imageWidth 
     )
 

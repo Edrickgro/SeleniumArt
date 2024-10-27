@@ -1,10 +1,12 @@
 //    @ts-nocheck
 
-   //add variance to each filter
-   //construction: repeated or not repeated, variance with object placement, allow overlap with objects?
-   //steps:
-   //1. grab objects and place them on scene
-   //2. for each pixel in an object, calculate LBP value (unless its an edge), kmeans value
+   //add draggable event on main canvas
+   //grab x_bound and y_bound boundaries of selected square, make of copy of image data representing that square
+   //draw rectangle to image showing visual feedback
+   //have every algorithm point to selected square image data except for objects which points to canny
+   //with generate algorithm, run through original image, and if current x,y is within bounds of x,y bound, use
+   //selected square data instead
+   //when user selects another region, updates all variables, only one square at a time
    let cannyButton = <HTMLButtonElement> document.getElementById("canny-button");
    let cannyCanvas = <HTMLCanvasElement> document.getElementById("canny-canvas");
    let cannySelectSource = <HTMLSelectElement> document.getElementById("canny-select-source");
@@ -17,6 +19,7 @@
 
    let kmeansButton = <HTMLButtonElement> document.getElementById("kmeans-button");
    let kmeansCanvas = <HTMLCanvasElement> document.getElementById("kmeans-canvas");
+   let kmeansSelectSource = <HTMLSelectElement> document.getElementById("kmeans-select-source");
 
    let objectsButton = <HTMLButtonElement> document.getElementById("objects-detect-button");
    let objectsCanvas = <HTMLCanvasElement> document.getElementById("objects-canvas");
@@ -24,6 +27,7 @@
    let objectsThresholdButton = <HTMLButtonElement> document.getElementById("objects-threshold-button");
    let objectsDetectThreshold = <HTMLButtonElement> document.getElementById("objects-detect-threshold-button");
    let objectsDetectPixelButton = <HTMLButtonElement> document.getElementById("objects-detect-pixel-threshold-button");
+   
    let strict = <HTMLInputElement> document.getElementById("strict");
 
    let dogCanvas = <HTMLCanvasElement> document.getElementById("dog-canvas");
@@ -34,6 +38,10 @@
    let dogtInput = <HTMLInputElement> document.getElementById("dog-t-input");
    let dogoInput = <HTMLInputElement> document.getElementById("dog-o-input");
    let dogeInput = <HTMLInputElement> document.getElementById("dog-e-input");
+   let dogstdmInput = <HTMLInputElement> document.getElementById("dog-stdm-input");
+   let dogColorType = <HTMLSelectElement> document.getElementById("dog-color-type");
+   let dogSelectSource = <HTMLSelectElement> document.getElementById("dog-select-source");
+
 
    let generateButton = <HTMLButtonElement> document.getElementById("generate-button");
    let generateCanvas = <HTMLCanvasElement> document.getElementById("generate-canvas");
@@ -106,16 +114,31 @@
 
         let std_e = parseFloat(dogstdeInput.value);
         let std_c = parseFloat(dogstdcInput.value);
+        let std_m = parseFloat(dogstdmInput.value);
         let k = parseFloat(dogkInput.value);
         let t = parseFloat(dogtInput.value);
         let o = parseFloat(dogoInput.value);
         let e = parseFloat(dogeInput.value);
+        let colorType = dogColorType.value == "bw" ? 1:0;
 
-        const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+        let image = 0;
+
+        if(dogSelectSource.value == "kMeans"){
+
+            image = kmeansCanvas.getContext("2d").getImageData(0,0, kmeansCanvas.width, kmeansCanvas.height);
+        }else if(dogSelectSource.value == "self"){
+            image = dogCanvas.getContext("2d").getImageData(0,0, dogSelectSource.width, dogSelectSource.height);
+        }
+        else{
+
+            image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+        }
+
         await cv.load();
+
         // Processing image
         
-        const processedImage = await cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e]);
+        const processedImage = await cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e, std_m, colorType]);
  
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
@@ -140,7 +163,19 @@
 
         kmeansCanvas.style.animationPlayState = "running";
 
-        const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+        let image = 0;
+
+        if(kmeansSelectSource.value == "dog"){
+            image = dogCanvas.getContext("2d").getImageData(0,0,dogCanvas.width, dogCanvas.height);
+        }else if(kmeansSelectSource.value == "self"){
+            image = kmeansCanvas.getContext("2d").getImageData(0,0, kmeansCanvas.width, kmeansCanvas.height);
+        }
+        else{
+
+            image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
+
+        }
+
         // const image = dummyctx.getImageData(0,0, dummyCanvas.width, hiddenCanvas.height);
 
         // Load the model
@@ -172,10 +207,14 @@
             if(cannySelectSource.value == "kMeans"){
 
                 image = kmeansCanvas.getContext("2d").getImageData(0,0, kmeansCanvas.width, kmeansCanvas.height);
-            }else{
 
+            }else if(cannySelectSource.value == "dog"){
+                image = dogCanvas.getContext("2d").getImageData(0,0, dogCanvas.width, dogCanvas.height);
+            }else if(cannySelectSource.value == "self"){
+                image = cannyCanvas.getContext("2d").getImageData(0,0, cannyCanvas.width, cannyCanvas.height);
+            }
+            else{
                 image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
-
             }
 
             cannyCanvas.style.animationPlayState = "running";
@@ -239,12 +278,14 @@
  
 
    cannyMaxSlider.addEventListener("input", (e) =>{
-    cannyMaxOutput.textContent = e.target.value;
+    let num = parseInt(e.target.value)/10;
+    cannyMaxOutput.textContent = num.toString();
     
    });
 
    cannyMinSlider.addEventListener("input", (e) =>{
-    cannyMinOutput.textContent = e.target.value;
+    let num = parseInt(e.target.value)/10;
+    cannyMinOutput.textContent = num.toString();
     
    });
 

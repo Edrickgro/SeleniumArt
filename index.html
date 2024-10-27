@@ -3,19 +3,30 @@
 <head>
 
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link rel="stylesheet" href="styles.css">
 
     <title>Texture Extractor</title>
 
 </head>
+
+
+<div class = "header">
+    <h2><a href="about.html">About/Tutorial</a></h2>
+</div>
+
+
 <body>
 
     <div id = "main-container">
 
+       
+
         <div class = "algorithm-container">
             <h2>UPLOADED IMAGE</h2>
             <canvas id="image-canvas"></canvas>
-            <input type="file" id="file-input" name="file" />
+            <input type="file" id="file-input" name="file" accept="image/png, image/jpeg" />
         </div>
 
         <div class = "algorithm-container">
@@ -24,6 +35,9 @@
                 <h2>DoG Image</h2>
                 <canvas id="dog-canvas"></canvas>
                 <button id="dog-button">Apply DoG</button>
+
+            <div class = "ui-container">
+
 
                 <div class = "component-container">
                     <label>
@@ -34,8 +48,15 @@
 
                 <div class = "component-container">
                     <label>
-                        stc_e:
-                        <input type="number" id="dog-stde-input" value = "3"  min="0" step = "0.1">
+                        std_e:
+                        <input type="number" id="dog-stde-input" value = "2"  min="0" step = "0.1">
+                    </label>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        std_m:
+                        <input type="number" id="dog-stdm-input" value = "5" step = "0.1" >
                     </label>
                 </div>
 
@@ -49,23 +70,46 @@
                 <div class = "component-container">
                     <label>
                         t:
-                        <input type="number" id="dog-t-input"  value = "5" min="0">
+                        <input type="number" id="dog-t-input"  value = "10" min="0">
                     </label>
                 </div>
 
                 <div class = "component-container">
                     <label>
                         o:
-                        <input type="number" id="dog-o-input" value = "0.05"  min="0" step ="0.01">
+                        <input type="number" id="dog-o-input" value = "0.01"  min="0" step ="0.1">
                     </label>
                 </div>
 
                 <div class = "component-container">
                     <label>
                         e:
-                        <input type="number" id="dog-e-input" value = "50" step = "0.01" >
+                        <input type="number" id="dog-e-input" value = "180" step = "0.1" >
                     </label>
                 </div>
+
+                <div class = "component-container">
+                    <label>
+                        Color Type:
+                        <select id = "dog-color-type">
+                            <option value="bw">Black & White</option>
+                            <option value="color">Color Mix</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Source:
+                        <select id = "dog-select-source">
+                            <option value="original">Original</option>
+                            <option value="kMeans">KMeans</option>
+                            <option value="self">Self</option>
+                        </select>
+                    </label>
+                </div>
+
+            </div>
 
 
 
@@ -78,6 +122,18 @@
                 <h2>LBP IMAGE</h2>
                 <canvas id="LBP-canvas"></canvas>
                 <button id="LBP-button">Apply LBP</button>
+
+                <div class = "component-container">
+                    <label>
+                        Source:
+                        <select id = "LBP-select-source">
+                            <option value="original">Original</option>
+                            <option value="kMeans">KMeans</option>
+                            <option value="dog">DoG</option>
+                            <option value="self">Self</option>
+                        </select>
+                    </label>
+                </div>
 
 
             </div>
@@ -115,6 +171,8 @@
                         <select id = "canny-select-source">
                             <option value="original">Original</option>
                             <option value="kMeans">KMeans</option>
+                            <option value="dog">DoG</option>
+                            <option value="self">Self</option>
                         </select>
                     </label>
                 </div>
@@ -138,21 +196,21 @@
                 <div class = "component-container">
                     <label>
                         Background TH:
-                        <input type="number" id="objects-threshold-button"  min="0">
+                        <input type="number" id="objects-threshold-button"  value = "0" min="0">
                     </label>
                 </div>
 
                 <div class = "component-container">
                     <label>
                         Object TH:
-                        <input type="number" id="objects-detect-threshold-button"  min="0">
+                        <input type="number" id="objects-detect-threshold-button" value = "0" min="0">
                     </label>
                 </div>
 
                 <div class = "component-container">
                     <label>
                         Pixel TH:
-                        <input type="number" id="objects-detect-pixel-threshold-button"  min="0">
+                        <input type="number" id="objects-detect-pixel-threshold-button" value = "0" min="0">
                     </label>
 
                 </div>
@@ -160,7 +218,7 @@
                 <div class = "component-container">
                     <label>
                         Strict Background?
-                        <input type="number" id = "strict" min = "0" max = "1">
+                        <input type="number" id = "strict" value= "0" min = "0" max = "1">
                     </label>
                 </div>
             </div>
@@ -188,9 +246,20 @@
 
                     <label>
                         Num colors:
-                        <input type="number" id="kmeans-num-colors"  min="1">
+                        <input type="number" id="kmeans-num-colors" value = "1" min="1">
                     </label>
 
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        Source:
+                        <select id = "kmeans-select-source">
+                            <option value="original">Original</option>
+                            <option value="dog">DoG</option>
+                            <option value="self">Self</option>
+                        </select>
+                    </label>
                 </div>
 
             </div>
@@ -212,28 +281,28 @@
                 <div class = "component-container">
                     <label>
                         variance:
-                        <input type = "number" id = "variance-input" min = "0">
+                        <input type = "number" id = "variance-input" value = "0" min = "0">
                     </label>
                 </div>
                 
                 <div class = "component-container">
                     <label>
                         texture:
-                        <input type = "number" id = "num-color-boxes" min = "0" max = "255">
+                        <input type = "number" id = "num-color-boxes" value = "0" min = "0" max = "255">
                     </label>
                 </div>
                 
                 <div class = "component-container">
                     <label>
                         num pixels TH:
-                        <input type = "number" id = "object-pixel-threshold" min = "0">
+                        <input type = "number" id = "object-pixel-threshold" value = "0" min = "0">
                     </label>
                 </div>
                 
                 <div class = "component-container">
                     <label>
                         factor:
-                        <input type = "number" id = "factor" min = "0">
+                        <input type = "number" id = "factor" value = "0" min = "0">
                     </label>
                 </div>
 
@@ -247,8 +316,6 @@
                             <option value="black">Black</option>
                         </select>
                     </label>
-
-
                 </div>
                     
                 

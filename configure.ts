@@ -3,12 +3,14 @@ let canvases = document.querySelectorAll("canvas");
 
 canvases.forEach((canvas) => {
     let ctx = canvas.getContext("2d"); 
-    ctx.fillStyle = "#433E0E";
+    // ctx.fillStyle = "#433E0E";
+    ctx.fillStyle = "#dcdcdc";
     ctx.fillRect(0, 0, canvas.width,canvas.height);
-  });
+});
 
 let canvas = <HTMLCanvasElement> document.getElementById("image-canvas");
 var dummyCanvas = <HTMLCanvasElement> document.getElementById("dummy-canvas");
+
 
 let ctx = canvas.getContext("2d");
 var dummyctx = dummyCanvas.getContext("2d");
@@ -20,19 +22,17 @@ var hiddenCanvasctx = hiddenCanvas.getContext("2d");
 var image_width = 0;
 var image_height = 0;
 
+
 var dummyImageData = dummyctx.getImageData(0,0,dummyCanvas.width, dummyCanvas.height);
 var dummyData = dummyImageData.data;
 
 var unmutableImageData = structuredClone(dummyImageData);
 var unmutableData = unmutableImageData.data;
 
-
-
 fileElement.addEventListener("change", (e)=>{
 
     canvas.style.animationPlayState = "running";
 
-    
     let reader = new FileReader();
     reader.readAsDataURL((<HTMLInputElement>e.target).files[0]);  
     reader.onload = function(event){
@@ -49,21 +49,24 @@ fileElement.addEventListener("change", (e)=>{
             hiddenCanvas.width = img.width;
             hiddenCanvas.height = img.height;
 
+
             hiddenCanvas.getContext("2d").drawImage(img,0,0);
             dummyctx.drawImage(img,0,0);
-            ctx.drawImage(img,0,0);
+
+
+
+            ctx.drawImage(img,0,0, canvas.width, canvas.height);
+
+
 
             canvas.style.animationPlayState = "paused";
-            
 
             dummyImageData = dummyctx.getImageData(0,0,dummyCanvas.width, dummyCanvas.height);
             dummyData = dummyImageData.data;
 
             unmutableImageData = structuredClone(dummyImageData);
             unmutableData = unmutableImageData.data;
-            
-            
-            
+                             
         }
         let result: string = event.target.result as string;
         img.src = result;
@@ -71,7 +74,3 @@ fileElement.addEventListener("change", (e)=>{
 
 
 });
-
-
-
-

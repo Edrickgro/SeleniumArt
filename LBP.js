@@ -1,4 +1,5 @@
 let LBPCanvas = document.getElementById("LBP-canvas");
+let LBPSelectSource = document.getElementById("LBP-select-source");
 let LBPCanvasCtx = LBPCanvas.getContext("2d");
 let button = document.getElementById("LBP-button");
 function get_average(i) {
@@ -12,16 +13,25 @@ function check_binary(pixel_average, neighbor_average) {
 }
 button.addEventListener("click", (event) => {
     LBPCanvas.style.animationPlayState = "running";
-    // var uniformNum = [0, 1, 2, 3, 4, 6, 7, 8, 12, 14, 15, 16, 24, 28, 30, 31, 32, 48, 
-    //     56, 60, 62, 63, 64, 96, 112, 120, 124, 126, 127, 128, 129, 131, 135, 143, 
-    //     159, 191, 192, 193, 195, 199, 207, 223, 224, 225, 227, 231, 239, 240, 241, 
-    //     243, 247, 248, 249, 251, 252, 253, 254, 255];
-    for (let i = 0; i < unmutableData.length; i += 4) {
+    let image;
+    if (LBPSelectSource.value == "kMeans") {
+        image = kmeansCanvas.getContext("2d").getImageData(0, 0, kmeansCanvas.width, kmeansCanvas.height).data;
+    }
+    else if (LBPSelectSource.value == "dog") {
+        image = dogCanvas.getContext("2d").getImageData(0, 0, dogCanvas.width, dogCanvas.height).data;
+    }
+    else if (LBPSelectSource.value == "self") {
+        image = LBPCanvas.getContext("2d").getImageData(0, 0, LBPCanvas.width, LBPCanvas.height).data;
+    }
+    else {
+        image = hiddenCanvasctx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height).data;
+    }
+    for (let i = 0; i < image.length; i += 4) {
         let bitString = "";
         let index = i / 4;
         let row = Math.floor(index / image_width);
         let column = index - (row * image_width);
-        let average = (unmutableData[i] + unmutableData[i + 2] + unmutableData[i + 3]) / 3;
+        let average = (image[i] + image[i + 2] + image[i + 3]) / 3;
         let topLeft = ((row - 1) * image_width + (column - 1)) * 4;
         let topLeft_average = get_average(topLeft);
         bitString += check_binary(average, topLeft_average);
