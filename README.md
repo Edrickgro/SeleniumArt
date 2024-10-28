@@ -6,9 +6,11 @@ describing an extended difference of gaussians algorithm that inspired me to mak
 
 Please note that there may be some bugs. If an algorithm takes more than a minute to finish, refresh the page.
 
+Feel free to fork this project and improve it. Please give credit :)
+
 [Northwestern Paper](https://users.cs.northwestern.edu/~sco590/winnemoeller-cag2012.pdf)
 
-[Project Website]()
+[Project Website](https://edrickgro.github.io/ArtGen/)
 
 ## Difference of Gaussians
 The [difference of gaussians](https://en.wikipedia.org/wiki/Difference_of_Gaussians") algorithm is an algorithm used in image processing. There
