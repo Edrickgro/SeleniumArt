@@ -7,6 +7,10 @@
 var imageWidth = 0;
 var imageHeight = 0;
 var globalData = 0;
+/**
+ * Performs the canny algorithm using OpenCV and returns the result
+ * that imageDataFromMat returns
+ */
 function cannyProcess({ msg, payload }) {
     const src = cv.matFromImageData(payload[0]);
     let dst = new cv.Mat();
@@ -14,6 +18,10 @@ function cannyProcess({ msg, payload }) {
     cv.Canny(src, dst, payload[1], payload[2], 3, false);
     postMessage({ msg, payload: imageDataFromMat(dst) });
 }
+/**
+ *
+ * Objects Algorithm
+ */
 function objectsFill({ msg, payload }) {
     imageWidth = payload[1];
     let data = structuredClone(payload[0]);
@@ -22,16 +30,17 @@ function objectsFill({ msg, payload }) {
     let object_size_threshold = payload[4];
     let strict_value = payload[5];
     imageHeight = (data.length / 4) / imageWidth;
-    // let q = [];
-    // q.push({edge: data[0] > 0 , visited: false, index: 0});
     let pixels = [];
     let rSum = 0;
     let gSum = 0;
     let bSum = 0;
+    //load pixels array with objects describing certain attributes of every data point/pixel
+    //this will help with the flood fill algorithm
     for (let i = 0; i < data.length / 4; i++) {
         pixels.push({ index: i, visited: false, background: false });
     }
-    //FIRST ROW
+    //The algorithm will start by traversing the 4 sides first: Top, Bottom, Left Right
+    //Top ROW
     if (strict_value) {
         for (let j = 0; j < imageWidth; j++) {
             let dataIndex = (j) * 4;
@@ -42,7 +51,7 @@ function objectsFill({ msg, payload }) {
                 continue;
             fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
         }
-        //bottom row
+        //Bottom row
         for (let j = 1; j < imageWidth + 1; j++) {
             let pixelObject = pixels[pixels.length - j];
             pixelObject.background = true;
@@ -51,6 +60,7 @@ function objectsFill({ msg, payload }) {
             let dataIndex = (pixels.length - j) * 4;
             fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
         }
+        //Left Column
         for (let j = [0]; j < imageHeight; j++) {
             let pixelObject = pixels[imageWidth * j];
             pixelObject.background = true;
@@ -59,6 +69,7 @@ function objectsFill({ msg, payload }) {
             let dataIndex = (imageWidth * j) * 4;
             fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
         }
+        //Right Column
         for (let j = 1; j < imageHeight + 1; j++) {
             let pixelObject = pixels[(imageWidth * j) - 1];
             pixelObject.background = true;
@@ -68,43 +79,13 @@ function objectsFill({ msg, payload }) {
             fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
         }
     }
-    // for(let j = 0; j < imageWidth; j++){
-    //     let dataIndex = (j) * 4;
-    //     let objectData = data[dataIndex];
-    //     let pixelObject = pixels[j];
-    //     pixelObject.background = true; 
-    //     if(pixelObject.visited) continue;
-    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
-    // }
-    // //bottom row
-    // for(let j = 1; j < imageWidth + 1; j++){
-    //     let pixelObject = pixels[pixels.length - j];
-    //     pixelObject.background = true; 
-    //     if(pixelObject.visited) continue;
-    //     let dataIndex = (pixels.length - j) * 4;
-    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
-    // }
-    // for(let j = [0]; j < imageHeight; j++){
-    //     let pixelObject = pixels[imageWidth * j];
-    //     pixelObject.background = true; 
-    //     if(pixelObject.visited) continue;
-    //     let dataIndex = (imageWidth * j) * 4;
-    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
-    // }
-    // for(let j = 1; j < imageHeight + 1; j++){
-    //     let pixelObject = pixels[(imageWidth * j) - 1];
-    //     pixelObject.background = true; 
-    //     if(pixelObject.visited) continue;
-    //     let dataIndex = ((imageWidth * j) - 1) * 4;
-    //     fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [0]);
-    // }
-    //DETECTING OBJECTS NOW
     distanceThreshold = payload[3];
     let identified_objects = [];
     let counter = 0;
     let randomR = 0;
     let randomG = 0;
     let randomB = 0;
+    //apply the flood fill for the rest of the pixels
     for (let i = 0; i < pixels.length; i++) {
         let pixelObject = pixels[i];
         let dataIndex = (i) * 4;
@@ -113,6 +94,7 @@ function objectsFill({ msg, payload }) {
             continue;
         fill(data, dataIndex, pixels, pixelObject, distanceThreshold, [identified_objects, object_size_threshold]);
     }
+    //assign each detected object a random color
     for (let i = 0; i < identified_objects.length; i++) {
         let object = identified_objects[i];
         randomR = Math.floor(Math.random() * (254 - 1) + 1);
@@ -127,76 +109,87 @@ function objectsFill({ msg, payload }) {
     const clampedArray = new ImageData(data, imageWidth);
     postMessage({ msg, payload: [clampedArray, identified_objects] });
 }
+/**
+ *
+ * @param row
+ * @param col
+ * @returns true if row,col inside bounds of image, false otherwise
+ */
 function validPixel(row, col) {
     let validRow = row >= 0 && row < imageHeight;
     let validCol = col >= 0 && col < imageWidth;
     return validRow && validCol;
 }
-function fillObject(data, dataIndex, pixels, pixelObject, distanceThreshold, identifyObjectsData) {
-    let imageHeight = (data.length / 4) / imageWidth;
-    let q = [];
-    let object = [];
-    q.push(pixelObject);
-    pixelObject.visited = true;
-    while (q.length > 0) {
-        let { index, visited, background } = q.shift();
-        if (background) {
-            data[(index * 4)] = 255;
-        }
-        else {
-            object.push(index * 4);
-        }
-        let row = Math.floor(index / imageWidth); //regular notation
-        let column = index - (row * imageWidth);
-        //have these in byte space
-        let up = validPixel(row - 1, column) ? ((row - 1) * imageWidth + (column)) * 4 : -1; //regular notation and then * 4 for 8 bit array
-        let right = validPixel(row, column + 1) ? ((row) * imageWidth + (column + 1)) * 4 : -1;
-        let bottom = validPixel(row + 1, column) ? ((row + 1) * imageWidth + (column)) * 4 : -1;
-        let left = validPixel(row, column - 1) ? ((row) * imageWidth + (column - 1)) * 4 : -1;
-        //performance is DRASTICALLY worsened if this is put into a for loop instead 
-        if (data[up] != undefined &&
-            pixels[up / 4].visited == false &&
-            data[up] == 0 &&
-            pixelFillValid(data, up, distanceThreshold, true)) {
-            if (background)
-                pixels[up / 4].background = true;
-            pixels[up / 4].visited = true;
-            q.push(pixels[up / 4]);
-        }
-        if (data[right] != undefined &&
-            pixels[right / 4].visited == false &&
-            data[right] == 0 &&
-            pixelFillValid(data, right, distanceThreshold, false)) {
-            if (background)
-                pixels[right / 4].background = true;
-            pixels[right / 4].visited = true;
-            q.push(pixels[right / 4]);
-        }
-        if (data[bottom] != undefined &&
-            pixels[bottom / 4].visited == false &&
-            data[bottom] == 0 &&
-            pixelFillValid(data, bottom, distanceThreshold, true)) {
-            if (background)
-                pixels[bottom / 4].background = true;
-            pixels[bottom / 4].visited = true;
-            q.push(pixels[bottom / 4]);
-        }
-        if (data[left] != undefined &&
-            pixels[left / 4].visited == false &&
-            data[left] == 0 &&
-            pixelFillValid(data, left, distanceThreshold, false)) {
-            if (background)
-                pixels[left / 4].background = true;
-            pixels[left / 4].visited = true;
-            q.push(pixels[left / 4]);
-        }
-        //identifyObjectsData[0] == 0 means that we're filling the background
-        //otherwise 
-        if (q.length == 0 && identifyObjectsData[0] !== 0 && object.length > identifyObjectsData[1]) {
-            identifyObjectsData[0].push(object);
-        }
-    }
-}
+// function fillObject(data, dataIndex, pixels, pixelObject, distanceThreshold, identifyObjectsData){
+//     let imageHeight = (data.length/4) / imageWidth; 
+//     let q = [];
+//     let object = [];
+//     q.push(pixelObject);
+//     pixelObject.visited = true; 
+//     while(q.length > 0){
+//         let {index, visited, background} = q.shift();
+//         if(background){
+//             data[(index * 4)] = 255;
+//         }
+//         else{
+//             object.push(index*4);
+//         }
+//         let row = Math.floor(index/imageWidth); //regular notation
+//         let column = index - (row * imageWidth);
+//         //have these in byte 
+//         let up = validPixel(row -1, column) ? ((row - 1) * imageWidth + (column)) * 4: -1; //regular notation and then * 4 for 8 bit array
+//         let right = validPixel(row, column + 1) ? ((row) * imageWidth + (column + 1)) * 4: -1;
+//         let bottom = validPixel(row + 1, column) ? ((row + 1) * imageWidth + (column)) * 4: -1;
+//         let left = validPixel(row, column - 1) ? ((row) * imageWidth + (column - 1)) * 4: -1;
+//         //performance is DRASTICALLY worsened if this is put into a for loop instead 
+//         if( data[up] != undefined && 
+//             pixels[up/4].visited == false && 
+//             data[up] == 0 && 
+//             pixelFillValid(data, up, distanceThreshold, true)){
+//             if(background) pixels[up/4].background = true;
+//             pixels[up/4].visited = true;
+//             q.push(pixels[up/4]);
+//         } 
+//         if( data[right] != undefined && 
+//             pixels[right/4].visited == false && 
+//             data[right] == 0 && 
+//             pixelFillValid(data, right, distanceThreshold, false)){
+//             if(background) pixels[right/4].background = true; 
+//             pixels[right/4].visited = true;
+//             q.push(pixels[right/4]);
+//         }
+//         if( data[bottom] != undefined && 
+//             pixels[bottom/4].visited == false && 
+//             data[bottom] == 0 && 
+//             pixelFillValid(data, bottom, distanceThreshold, true)){
+//             if(background) pixels[bottom/4].background = true;
+//             pixels[bottom/4].visited = true; 
+//             q.push(pixels[bottom/4]);
+//         }
+//         if( data[left] != undefined && 
+//             pixels[left/4].visited == false && 
+//             data[left] == 0 && 
+//             pixelFillValid(data, left, distanceThreshold, false)){
+//             if(background) pixels[left/4].background = true;
+//             pixels[left/4].visited = true; 
+//             q.push(pixels[left/4]);
+//         }
+//         //identifyObjectsData[0] == 0 means that we're filling the background
+//         //otherwise 
+//         if(q.length == 0 && identifyObjectsData[0] !== 0 && object.length > identifyObjectsData[1]){
+//             identifyObjectsData[0].push(object);
+//         }
+//     }
+// }
+/**
+ *
+ * @param data image data
+ * @param dataIndex current pixel of interest
+ * @param pixels array filled with objects for every pixel
+ * @param pixelObject current pixel object
+ * @param distanceThreshold described in tutorial
+ * @param identifyObjectsData rest of variables
+ */
 function fill(data, dataIndex, pixels, pixelObject, distanceThreshold, identifyObjectsData) {
     let imageHeight = (data.length / 4) / imageWidth;
     let q = [];
@@ -225,8 +218,6 @@ function fill(data, dataIndex, pixels, pixelObject, distanceThreshold, identifyO
         if (data[up] != undefined &&
             pixels[up / 4].visited == false) {
             let isValid = pixelFillValid(data, up, distanceThreshold, true);
-            //not working because when the pixel is 0, it needs to be able to add edges from pixelFillValid but it doesn't
-            //when detect edge from directions, add to object but do not add to heap
             //search initial object fill until not an edge or background
             //if current is blank(0) and neighbor is edge, add to object but not q
             //if current is blank(0) and neighbor is blank, add to q
@@ -261,14 +252,6 @@ function fill(data, dataIndex, pixels, pixelObject, distanceThreshold, identifyO
                 pixels[right / 4].visited = true;
                 object.push(right);
             }
-            // if(background && data[right] == 0){
-            //     pixels[right/4].background = true;
-            //     pixels[right/4].visited = true;
-            //     q.push(pixels[right/4]);
-            // }else if(!background && (data[right] == 0 || data[right] == 255)){
-            //     pixels[right/4].visited = true;
-            //     q.push(pixels[right/4]);
-            // }
         }
         if (data[bottom] != undefined &&
             pixels[bottom / 4].visited == false) {
@@ -286,14 +269,6 @@ function fill(data, dataIndex, pixels, pixelObject, distanceThreshold, identifyO
                 pixels[bottom / 4].visited = true;
                 object.push(bottom);
             }
-            // if(background && data[bottom] == 0){
-            //     pixels[bottom/4].background = true;
-            //     pixels[bottom/4].visited = true;
-            //     q.push(pixels[bottom/4]);
-            // }else if(!background && (data[bottom] == 0 || data[bottom] == 255)){
-            //     pixels[bottom/4].visited = true;
-            //     q.push(pixels[bottom/4]);
-            // }
         }
         if (data[left] != undefined &&
             pixels[left / 4].visited == false) {
@@ -311,22 +286,21 @@ function fill(data, dataIndex, pixels, pixelObject, distanceThreshold, identifyO
                 pixels[left / 4].visited = true;
                 object.push(left);
             }
-            // if(background && data[left] == 0){
-            //     pixels[left/4].background = true;
-            //     pixels[left/4].visited = true;
-            //     q.push(pixels[left/4]);
-            // }else if(!background && (data[left] == 0 || data[left] == 255)){
-            //     pixels[left/4].visited = true;
-            //     q.push(pixels[left/4]);
-            // }
         }
-        //identifyObjectsData[0] == 0 means that we're filling the background
-        //otherwise 
+        //identifyObjectsData[0] == 0 means that we're filling the background 
         if (q.length == 0 && identifyObjectsData[0] !== 0 && object.length > identifyObjectsData[1]) {
             identifyObjectsData[0].push(object);
         }
     }
 }
+/**
+ *
+ * @param data image data
+ * @param dataIndex current pixel index within image data
+ * @param distanceThreshold if distance to nearest two edges is less than, not valid
+ * @param axis if false, we check for horizontal, if true we check for vertical
+ * @returns
+ */
 function pixelFillValid(data, dataIndex, distanceThreshold, axis) {
     if (distanceThreshold == 0) {
         return true;
@@ -370,6 +344,13 @@ function pixelFillValid(data, dataIndex, distanceThreshold, axis) {
     //let pixel fill pass if last first pixel or last second pixel is same color and current color
     return !(calculatedDistance <= (distanceThreshold));
 }
+/**
+ * @param direction direction to move pixel
+ * @param dis distance to move pixel
+ * @param row original row
+ * @param column original column
+ * @returns
+ */
 function genRandomObjectVariance(direction, dis, row, column) {
     switch (direction) {
         case "TopLeft":
@@ -392,6 +373,10 @@ function genRandomObjectVariance(direction, dis, row, column) {
             break;
     }
 }
+/**
+ *
+ * Generate algorith
+ */
 function generateProcess({ msg, payload }) {
     //cannyData, LBPData, kMeansData, objects_identified, allow_overlap, is_repeated, object_variance
     const cannyData = payload[0];
@@ -413,15 +398,14 @@ function generateProcess({ msg, payload }) {
     let unique_colors = {};
     let max_color_count = 0;
     let color_fill = [0, 0, 0];
+    //find most common color in image
     if (empty_fill) {
         for (let i = 0; i < kMeansData.length; i++) {
             let r = kMeansData[i];
             let g = kMeansData[i + 1];
             let b = kMeansData[i + 2];
             let a = 255;
-            //00000011
-            //00000100
-            //00000111
+            //clever way to convert RGBA values into single unique integer for hashmaps
             let color = 0;
             color |= a;
             color |= r << 16;
@@ -440,6 +424,7 @@ function generateProcess({ msg, payload }) {
         }
     }
     let original_object_pixels = new Uint8ClampedArray((cannyData.length) / 4);
+    //fill pixels with most common color    
     for (let i = 0; i < objects_identified.length; i++) {
         let object = objects_identified[i];
         for (let j = 0; j < object.length; j++) {
@@ -450,6 +435,7 @@ function generateProcess({ msg, payload }) {
             image_data[data_index + 3] = 255;
         }
     }
+    //place objects
     for (let i = 0; i < objects_identified.length; i++) {
         let object = objects_identified[i];
         let randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
@@ -480,6 +466,7 @@ function generateProcess({ msg, payload }) {
             let pixelR = 0;
             let pixelG = 0;
             let pixelB = 0;
+            //apply LBP texture
             if (LBPPixel > 128) {
                 let LBPMidRatio = LBPPixel / 128 - 1;
                 let boost = maxBoost * LBPMidRatio;
@@ -501,21 +488,22 @@ function generateProcess({ msg, payload }) {
             image_data[data_index + 3] = pixelA;
         }
     }
+    //apply color
     for (let i = 0; i < image_data.length; i += 4) {
         if ((image_data[i + 3]) == 0) {
             image_data[i + 3] = 255;
             image_data[i] = kMeansData[i];
             image_data[i + 1] = kMeansData[i + 1];
             image_data[i + 2] = kMeansData[i + 2];
-            // image_data[i+3] = 255;
-            // image_data[i] = 0;
-            // image_data[i+1] = 255;
-            // image_data[i+2] = 0;
         }
     }
     const clampedArray = new ImageData(image_data, imageWidth);
     postMessage({ msg, payload: [clampedArray] });
 }
+/**
+ *
+ * Converts imageData to Mat from Aral Roca
+ */
 function imageDataFromMat(mat) {
     // converts the mat type to cv.CV_8U
     const img = new cv.Mat();
@@ -540,6 +528,10 @@ function imageDataFromMat(mat) {
     img.delete();
     return clampedArray;
 }
+/**
+ *
+ * Kmeans Algorithm
+ */
 function kmeansProcess({ msg, payload }) {
     postMessage({ msg, payload: kMeans(payload) });
 }
@@ -596,24 +588,15 @@ function crossEdgeBlur(stc_e, direction, data, x_center, y_center) {
     let kernelSize = getKernelSize(stc_e);
     let mid = Math.floor(kernelSize / 2);
     let interp_list = [];
-    //the problem here is that javascript fucking hates me and floating point math is the greatest burden placed
-    //upon this earth figure out a way to find if
     for (let r = -mid; r <= mid; r++) {
-        //parseFloat(num.toFixed(2))
         let x_cos = Math.cos(direction);
         x_cos = parseFloat(x_cos.toFixed(2));
         let y_sin = Math.sin(direction);
         y_sin = parseFloat(y_sin.toFixed(2));
         let x_offset = r * x_cos;
-        // let x = 0;
         let y_offset = r * y_sin;
-        // let y = r;
         let x = x_center + x_offset;
         let y = y_center + y_offset;
-        // if(!validPixel(y,x)){
-        //     interp_list.push(0);
-        //     continue;
-        // }
         let x1 = 0;
         let x2 = 0;
         let y1 = 0;
@@ -637,11 +620,6 @@ function crossEdgeBlur(stc_e, direction, data, x_center, y_center) {
         }
         let dataIndex = ((y) * imageWidth + (x)) * 4;
         let demon = ((x2 - x1) * (y2 - y1));
-        //row, col
-        // let upLeft = validPixel(y1, x1) ? data[((y1) * imageWidth + (x1)) * 4]: 0;
-        // let upRight = validPixel(y1, x2) ? data[((y1) * imageWidth + (x2)) * 4]: 0;
-        // let bottomLeft = validPixel(y2,x1) ? data[((y2) * imageWidth + (x1)) * 4]: 0;
-        // let bottomRight = validPixel(y2, x2) ? data[((y2) * imageWidth + (x2)) * 4]: 0;
         let upLeft = validPixel(y1, x1) ?
             (data[(((y1) * imageWidth + (x1)) * 4)] +
                 data[(((y1) * imageWidth + (x1)) * 4) + 1] +
@@ -666,29 +644,6 @@ function crossEdgeBlur(stc_e, direction, data, x_center, y_center) {
     }
     return interp_list;
 }
-//   function oneDimensionalGaussian(stc_e, interp_list){
-//     let kernel = [];
-//     let kernel_size = getKernelSize(stc_e);
-//     let mid = Math.floor(kernel_size/2);
-//     let kernelSum = 0
-//     for(let x = -mid; x <= mid; x++){
-//         let distance = Math.abs(x);
-//         let root = (1/(Math.sqrt(2*Math.PI*stc_e*stc_e)));
-//         let power = -(distance*distance)/(2*stc_e*stc_e);
-//         let epsi = Math.pow(Math.E, power);
-//         let gValue = root*epsi;
-//         kernel.push(gValue);
-//         kernelSum += gValue; 
-//     }
-//     for(let i = 0; i < kernel.length; i++){
-//         kernel[i] = kernel[i]/kernelSum;
-//     }
-//     let gaussianValue = 0;
-//     for(let i = 0; i < kernel.length; i++){
-//         gaussianValue += kernel[i] * interp_list[i];
-//     }
-//     return gaussianValue;
-//   }
 function getInterp(std_m, direction, data, directions, x_center, y_center, reverse, step_size) {
     let kernelSize = getKernelSize(std_m);
     let mid = Math.floor(kernelSize / 2);
@@ -807,13 +762,6 @@ function oneDimensionalGaussian(stc_e, interp_list) {
     let kernel_size = getKernelSize(stc_e);
     let mid = Math.floor(kernel_size / 2);
     let kernelSum = 0;
-    // let dst = new cv.Mat();
-    // let ksize = new cv.Size(interp_list.length, 1);
-    // let src = cv.matFromArray(interp_list.length, 1, cv.CV_64F, interp_list);
-    // cv.GaussianBlur(src, dst, ksize, stc_e, 0, cv.BORDER_DEFAULT);
-    // let compValue = dst.doublePtr(0,mid); 
-    // dst.delete();
-    // src.delete();
     for (let x = -mid; x <= mid; x++) {
         let distance = Math.abs(x);
         let root = (1 / (Math.sqrt(2 * Math.PI * stc_e * stc_e)));
@@ -833,12 +781,6 @@ function oneDimensionalGaussian(stc_e, interp_list) {
     return gaussianValue;
 }
 function generateDog({ msg, payload }) {
-    // let std_c = 0.1; //standard deviation of sobel gaussian blur
-    // let std_e = 3; //standard deviation of one dimension across edge gaussian blur
-    // let k = 2; //second gaussian std scalar
-    // let t = 5; //second gaussian scalar
-    // let o = 0.05; //below threshold multiplier (0-1)
-    // let e = 50; //minimum threshold (0-255)
     let std_c = payload[3];
     let std_e = payload[2];
     let k = payload[4];
@@ -863,8 +805,6 @@ function generateDog({ msg, payload }) {
     let I_X2 = new cv.Mat();
     let I_Y2 = new cv.Mat();
     let I_XY = new cv.Mat();
-    // let mat1 = new cv.Mat();
-    // let mat2 = new cv.Mat(); 
     //CONVERT TO GRAY SCALE
     cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
     //input, output, depth, orderx, ordery, kernel size
@@ -880,46 +820,7 @@ function generateDog({ msg, payload }) {
     cv.GaussianBlur(I_X2, E, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_XY, F, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_Y2, G, ksize, std_c, cv.BORDER_DEFAULT);
-    // (E+G +- sqrt( (E-G)^2 + 4F^2)  )/2
     let newImage = new cv.Mat(rows, cols, src.type());
-    // let firstKernelSize = getKernelSize(std_e);
-    // let secondKernelSize = getKernelSize((std_e*k));
-    // let ksizeFirst = new cv.Size(firstKernelSize, firstKernelSize);
-    // let ksizeSecond = new cv.Size(secondKernelSize, secondKernelSize);
-    // cv.GaussianBlur(src, mat1, ksizeFirst, std_e, cv.BORDER_DEFAULT);
-    // cv.GaussianBlur(src, mat2, ksizeSecond, (std_e * k), cv.BORDER_DEFAULT);
-    // for(var y = 0; y < mat1.rows; y++ ){
-    //     for(var x = 0; x < mat2.cols; x++){
-    //         let first = mat1.ucharPtr(y,x)[0];
-    //         let second = mat2.ucharPtr(y,x)[0];
-    //         let pixel = ((1 + t) * first) - (t * second); 
-    //         let image_index = ((y * imageWidth) + x) * 4;
-    //         let difference_of_gaussians = 0;
-    //         let e = E.doublePtr(y,x)[0];
-    //         let f = F.doublePtr(y,x)[0];
-    //         let g = G.doublePtr(y,x)[0];
-    //         let EGSquare = (e-g) * (e-g);
-    //         let FSquare = f * f;
-    //         let rootbytwo = (Math.sqrt(EGSquare + (4*FSquare)));
-    //         let lambdaOne =  ((e + g) + rootbytwo)/2;
-    //         let lambdaTwo = ((e + g) - rootbytwo)/2;
-    //         let lambda = lambdaOne > lambdaTwo ? lambdaOne:lambdaTwo;
-    //         let eigenvector = [lambda - e, -f];
-    //         let directionRadians = Math.atan2(eigenvector[1], eigenvector[0]);
-    //         // if(pixel > e_thresh){
-    //         //     difference_of_gaussians = 255;
-    //         // }else{
-    //         //     let tangentFunction = 1 + Math.tanh(o * (pixel - e_thresh));
-    //         //     difference_of_gaussians = Math.round(tangentFunction * 255);
-    //         //     // difference_of_gaussians = 255;  
-    //         // }
-    //         directions.push(directionRadians);
-    //         image_data_difference[image_index] = difference_of_gaussians;
-    //         image_data_difference[image_index + 1] = difference_of_gaussians;
-    //         image_data_difference[image_index + 2] = difference_of_gaussians;
-    //         image_data_difference[image_index + 3] = 255;
-    //     }
-    // }
     for (var y = 0; y < rows; y++) {
         for (var x = 0; x < cols; x++) {
             let e = E.doublePtr(y, x)[0];
@@ -946,16 +847,7 @@ function generateDog({ msg, payload }) {
             let difference_of_gaussians = ((1 + t) * primaryGaussianValue) - ((t) * secondaryGaussianValue);
             difference_of_gaussians = Math.abs(difference_of_gaussians);
             let image_index = ((y * imageWidth) + x) * 4;
-            // let final = difference_of_gaussians;
             let final = difference_of_gaussians;
-            // if(difference_of_gaussians > e_thresh){
-            //     final = 255;
-            // }else{
-            //     let tangentFunction = 1 + Math.tanh(o * (difference_of_gaussians - e_thresh));
-            //     final = Math.round(tangentFunction * 255);
-            //     // // difference_of_gaussians = 255;
-            //     // final = 0;
-            // }
             image_data_difference[image_index] = final;
             image_data_difference[image_index + 1] = final;
             image_data_difference[image_index + 2] = final;
@@ -1009,6 +901,7 @@ function generateDog({ msg, payload }) {
             image_data_integral[image_index + 3] = 255;
         }
     }
+    //run again for anti-aliasing
     // for(var y = 0; y < rows; y++){
     //     for(var x = 0; x < cols; x++){
     //         let image_index = ((y * imageWidth) + x) * 4;
