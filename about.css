@@ -28,6 +28,10 @@ div{
 
 }
 
+img{
+    width:100%;
+}
+
 #main{
     border-style:none;
 }
