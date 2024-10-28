@@ -24,5 +24,11 @@ flow is calculated and then blured (std_c). The difference of gaussian is calcul
 A final blur (std_m) is the calculated along the edges to reduce noise. 
 The resulting value is then set to 1 if its above e. If not, it passed through a formula (o). The lower o is, the more gradients the final image will have.
 
+## Examples of DoG
+
+![Taylor Swift dog image example](tswiftdog.png)
+![Vanessa Zamora dog image example](vanessadog.png)
+
+
 
 
