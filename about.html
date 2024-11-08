@@ -29,7 +29,7 @@
                     <br>
                     <br>
 
-                    Please note that there are certain bugs that have not been fixed. If an algorithm takes more than a minute to run, check console for bugs and/or
+                    Please note that there are bugs that have not been fixed. If an algorithm takes more than a minute to run, check console for bugs and/or
                     restart.
                 </p>
             </div>
@@ -40,10 +40,15 @@
 
 
             <div>
+                <p>Start by uploading either a single frame or an entire video. Only JPGs and PNGs are accepted as well as MP4s for videos. TIP: Lower quality images (less than 1000 pixels per side) can
+                    produce faster and better results.</p>
+            </div>
 
-                <p>Start by uploading a file. Only JPGs and PNGs are accepted. TIP: Lower quality images (less than 1000 pixels per side) can
-                    produce faster and better results</p>
-
+            <div>
+                <p>If uploading a video, it is recommended you run through all the settings with a single test frame first. The final video will be of type WEBM
+                    and the frame rate will be dependent on how fast the algorithms run. It's recommended to convert the video to a different type and speed it up and/or edit the video
+                    if desired.
+                </p>
             </div>
 
             <div>
@@ -58,49 +63,50 @@
 
                 <p>
                     The most computationally and logically complex algorithm but it provides a good base for the others, which is why it comes first. This
-                    algorithm is great for mimicking art styles such as pastels and graphite.
+                    algorithm is great for mimicking art styles such as pastels and graphite. It stands for Difference of Gaussians. One gaussian is calculated
+                    and is subtracted from a second gaussian using different parameters. 
                     <br>
                     <br>
     
-                    Standard deviations: (0.1 to 20). 
+                    Standard deviations: (0.1 to 20). None of these variables have a max but a ballpark would be (0 to 20).
                     <br>
-                    Low = low blur, low compute cost. High = high blur, high compute cost
+                    Low = low blur. High = high blur
                     <br>
                     <br>
                     
-                    <b>STD_C</b>: initial blur strength, LOW impact
+                    <b>STD_C</b>: Initial image blur
     
                     <br>
                     <br>
     
-                    <b>STD_E</b>: blur ACROSS edges, HIGH impact
+                    <b>STD_E</b>: Reduce noise ACROSS edges
     
                     <br>
                     <br>
     
-                    <b>STD_M</b>: blur ALONG edges, HIGH impact
+                    <b>STD_M</b>: Reduce noise ALONG edges
     
                     <br>
                     <br>
     
-                    <b>k</b>: factor for second blur (k * STD_E), MEDIUM impact
+                    <b>k</b>: intensity factor for second blur
                     <br>
                     <br>
     
-                    <b>t</b>: "sharpness": (1 + t)(first blur) - (t)(second blur), MEDIUM impact
+                    <b>t</b>: "sharpness"
                     <br>
                     <br> 
     
-                    <b>e</b>: if pixel value greater than e, white (255), HIGH impact
+                    <b>e</b>: if pixel value greater than e, white (255)
                     
                     <br>
                     <br>
     
-                    <b>o</b>: if less than e, pass through formula, lower = more gradients/colors  HIGH impact
+                    <b>o</b>: gradient strength 
     
                     <br>
                     <br>
-                    Examples using 600x375 and 500x754 images and default settings:
+                    Examples using 600x375 (default settings) and 805x950 images:
     
                     <br>
                     <br>
@@ -121,7 +127,7 @@
             <div>
 
                 <p>
-                    The fastest and simplest algorithm. It extracts the texture of the image
+                    The fastest and simplest algorithm. It extracts the texture of the image.
                 </p>
 
             </div>
@@ -152,7 +158,7 @@
             <div>
                 <p>
                     Uses the Canny data to detect objects using a flood fill algorithm. It fills every non-edge pixel it can find until it can no longer
-                    find any. This process is repeated for every pixel. The thresholds allows you to account for an impurities and discontinuities found
+                    find any. This process is repeated for every pixel. The thresholds allows you to account for any impurities and discontinuities found
                     in the Canny data.
 
                     <br>
@@ -248,7 +254,7 @@
 
                 <p>This project is done entirely in JavaScript (partially TypeScript) and OpenCV.js.</p>
             <p>The hardest part of the project was working without a framework and using OpenCV.js which notoriously lacks documentation</p>
-            <p>Moreover, JavaScript Canvas stores data in flat 8 bit arrays, which is not sufficient for complex algorithms. This is where OpenCv comes</p>
+            <p>Moreover, JavaScript Canvas stores data in flat 8 bit arrays, which is not sufficient for complex algorithms. This is where OpenCv comes in</p>
             <p>The opencv.js file is loaded locally and saved into a Web Worker. Web Workers allow an algorithm to run on a different thread and
                 allows the main thread to continue running. Communication between the Web Worker and the main thread is faciliated through a script called
                 "cv.js".

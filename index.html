@@ -21,7 +21,83 @@
 
     <div id = "main-container">
 
-       
+        <!-- <video src = "videoS.mp4"  id = "video" controls></video> -->
+
+        <div id = "video-container">
+
+        </div>
+        
+        <div class = "algorithm-container">
+
+            <h2>VIDEO</h2>
+
+            <div id = "video-alg-container">
+
+                <input type="file" id="video-file-input" name="file" accept="video*"/>
+
+                <div class = "component-container" id = "progress-bar-ui">
+                    <label id = "video-progress-bar-label" for="video-progress-bar">Progress: 0%</label>
+                    <progress id="video-progress-bar" value="0" max="100"> 0% </progress>
+                    <div id="loader"></div>  
+                </div>
+    
+                <div class = "ui-container" id = "video-ui">
+    
+                    <div class = "component-container">
+                        <label>
+                            Start:
+                            <input type="number" id="video-time-start" value = "0" min="0" step = "0.1">
+                        </label>
+                    </div>
+    
+                    <div class = "component-container">
+                        <label>
+                            Step:
+                            <input type="number" id="video-time-step" value = "5" min="0" step = "0.1">
+                        </label>
+                    </div>
+    
+                    <div class = "component-container">
+                        <label id = "video-dog-check-label">
+                            DoG
+                        </label>
+                        <input class = "videoCheck" type="checkbox" id="video-dog-checkbox" value="dog"/>
+                    </div>
+    
+                    <div class = "component-container">
+    
+                        <label id = "video-lbp-check-label">
+                            LBP
+                            
+                        </label>
+                        <input class = "videoCheck" type="checkbox" id="video-lbp-checkbox" value="lbp"/>
+    
+                    </div>
+    
+                    <div class = "component-container">
+    
+                        <label id = "video-objects-check-label">
+                            Objects
+                            
+                        </label>
+                        <input class = "videoCheck" type="checkbox" id="video-objects-checkbox" value="objects"/>
+    
+                    </div>
+                    
+                </div>
+    
+                <div class = "component-container">
+    
+                    <button id = "video-start">Start</button>
+                    <button id = "video-pause">Pause</button>
+                    <button id = "video-stop">Stop</button>
+    
+                </div>
+
+            </div>
+            
+            
+        </div>
 
         <div class = "algorithm-container">
             <h2>UPLOADED IMAGE</h2>
@@ -32,6 +108,7 @@
         <div class = "algorithm-container">
 
             <div>
+
                 <h2>DoG Image</h2>
                 <canvas id="dog-canvas"></canvas>
                 <button id="dog-button">Apply DoG</button>
@@ -90,6 +167,14 @@
 
                 <div class = "component-container">
                     <label>
+                        downsample f:
+                        <input type="number" id="dog-factor-input" value = "1"  min="1" step = "0.5">
+                    </label>
+                </div>
+
+
+                <div class = "component-container">
+                    <label>
                         Color Type:
                         <select id = "dog-color-type">
                             <option value="bw">Black & White</option>
@@ -110,8 +195,6 @@
                 </div>
 
             </div>
-
-
 
             </div>
                 
@@ -221,14 +304,9 @@
                         <input type="number" id = "strict" value= "0" min = "0" max = "1">
                     </label>
                 </div>
-            </div>
-
-            
+            </div>  
           
         </div>
-
-
-
 
         <div class = "algorithm-container">
 
@@ -249,6 +327,13 @@
                         <input type="number" id="kmeans-num-colors" value = "1" min="1">
                     </label>
 
+                </div>
+
+                <div class = "component-container">
+                    <label>
+                        downsample f:
+                        <input type="number" id="kmeans-factor-input" value = "1"  min="1" step = "0.5">
+                    </label>
                 </div>
 
                 <div class = "component-container">
@@ -317,6 +402,17 @@
                         </select>
                     </label>
                 </div>
+
+                <div class = "component-container">
+
+                    <label>
+                        Color Source:
+                        <select id = "generate-color-fill">
+                            <option value="kmeans">kMeans</option>
+                            <option value="dog">DoG</option>
+                        </select>
+                    </label>
+                </div>
                     
                 
 
@@ -324,9 +420,6 @@
             </div>
             
         </div>
-
-
-
 
     </div>
 

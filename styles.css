@@ -8,8 +8,6 @@
 
 body{
     font-family: "Lucida Console", "Courier New", monospace;
-    
-
 }
 
 .header{
@@ -17,6 +15,56 @@ body{
     justify-content: center;
 }
 
+.videoCheck{
+    margin-right:1vw;
+}
+
+#video-container{
+    display:none;
+}
+
+#video-alg-container{
+    padding-top:1%;
+    width:50vw;
+    padding-left:1%;
+    border-style:solid;
+}
+
+progress{
+    width: 25vw;
+    
+    margin-left: 1vw;
+}
+
+progress::-moz-progress-bar {
+    background-color: rgb(0, 0, 0);
+}
+
+#loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #000000; 
+    border-bottom: 5px solid #000000;
+    border-radius: 0%;
+    width: 1rem;
+    height: 1rem;
+    margin-left: 10px;
+    animation: spin 0.5s linear infinite;
+    animation-play-state: paused;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+video{
+    width: 80vw;
+}
+
+#progress-bar-ui{
+    margin-top:5vh;
+    
+}
 #main-container{
     width: 100%;
     display: flex;
@@ -27,8 +75,7 @@ body{
 
 h2{ 
     color: var(--secondary);
-    font-weight: bold;
-    
+    font-weight: bold; 
 }
 
 input[type=number] {
@@ -40,20 +87,10 @@ input[type=number] {
     
 }
 
-
-/* input[type=range] {
-
-    
-    
-} */
-
-
-
 button{
     background-color: var(--button);
-    
     align-self: flex-start;
-    
+
 }
 button:hover{
     background-color: var(--background);
@@ -64,12 +101,9 @@ input[type="range"] {
     accent-color: var(--secondary);
   }
   
-
-
 body{
     background-color: var(--background);
 }
-
 
 .algorithm-container{
     width: 80%;
@@ -89,10 +123,15 @@ body{
 #test{
     display: flex;
 }
+
+#video-ui{
+    
+}
 .component-container{
     display: flex;
     margin-right: 2%;
-    margin-bottom: 2%;
+    margin-bottom: 1%;
+    margin-top: 1%;
     
 }
 
@@ -105,6 +144,8 @@ body{
     width:100%;
     height: auto;
 }
+
+
 
 
 canvas{
@@ -128,12 +169,7 @@ canvas{
       
     animation: bg-spin 3s linear infinite;
 
-
     animation-play-state: paused;
-    
-    
-    
-  
 
   }
   

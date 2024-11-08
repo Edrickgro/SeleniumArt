@@ -539,7 +539,14 @@ function kmeansProcess({ msg, payload }) {
  * This function is to convert again from cv.Mat to ImageData
  */
 function kMeans(payload) {
-    let mat = cv.matFromImageData(payload[0]);
+    let factor = payload[2];
+    let src = cv.matFromImageData(payload[0]);
+    let newRow = Math.round(src.rows / factor);
+    let newCol = Math.round(src.cols / factor);
+    let mat = new cv.Mat();
+    let dsize = new cv.Size(newCol, newRow);
+    // You can try more different parameters
+    cv.resize(src, mat, dsize, 0, 0, cv.INTER_AREA);
     let sample = new cv.Mat(mat.rows * mat.cols, 3, cv.CV_32F);
     for (var y = 0; y < mat.rows; y++) {
         for (var x = 0; x < mat.cols; x++) {
@@ -553,7 +560,6 @@ function kMeans(payload) {
     let attempts = 1;
     let centers = new cv.Mat();
     let crite = new cv.TermCriteria(cv.TermCriteria_EPS + cv.TermCriteria_MAX_ITER, 10000, 0.0001);
-    let criteria = [1, 10, 0.0001];
     cv.kmeans(sample, clusterCount, labels, crite, attempts, cv.KMEANS_RANDOM_CENTERS, centers);
     var newImage = new cv.Mat(mat.size(), mat.type());
     for (var y = 0; y < mat.rows; y++) {
@@ -573,10 +579,15 @@ function kMeans(payload) {
             newImage.ucharPtr(y, x)[3] = alphaChan;
         }
     }
-    const clampedArray = new ImageData(new Uint8ClampedArray(newImage.data), newImage.cols, newImage.rows);
+    let finalMat = new cv.Mat();
+    let finalSize = new cv.Size(src.cols, src.rows);
+    // You can try more different parameters
+    cv.resize(newImage, finalMat, finalSize, 0, 0, cv.INTER_AREA);
+    const clampedArray = new ImageData(new Uint8ClampedArray(finalMat.data), finalMat.cols, finalMat.rows);
     newImage.delete();
     mat.delete();
     sample.delete();
+    finalMat.delete();
     return clampedArray;
 }
 function getKernelSize(sigma) {
@@ -789,13 +800,21 @@ function generateDog({ msg, payload }) {
     let e_thresh = payload[7];
     let std_m = payload[8];
     let colorType = payload[9];
-    let image_data_difference = payload[0].data;
-    let src = cv.matFromImageData(payload[0]);
-    let masterImageData = structuredClone(payload[0].data);
-    let image_data_integral = structuredClone(payload[0].data);
-    let image_data_aliasing = structuredClone(payload[0].data);
-    imageWidth = payload[1];
-    imageHeight = ((payload[0].data.length) / 4) / imageWidth;
+    let original_src = cv.matFromImageData(payload[0]);
+    let factor = payload[10];
+    let newRow = Math.round(original_src.rows / factor);
+    let newCol = Math.round(original_src.cols / factor);
+    let src = new cv.Mat();
+    let dsize = new cv.Size(newCol, newRow);
+    // You can try more different parameters
+    cv.resize(original_src, src, dsize, 0, 0, cv.INTER_AREA);
+    let reducedArray = new ImageData(new Uint8ClampedArray(src.data), newCol);
+    let image_data_difference = reducedArray.data;
+    let masterImageData = structuredClone(reducedArray.data);
+    let image_data_integral = structuredClone(reducedArray.data);
+    let image_data_aliasing = structuredClone(reducedArray.data);
+    imageWidth = newCol;
+    imageHeight = ((reducedArray.data.length) / 4) / imageWidth;
     let directions = [];
     let I_X = new cv.Mat();
     let I_Y = new cv.Mat();
@@ -820,7 +839,7 @@ function generateDog({ msg, payload }) {
     cv.GaussianBlur(I_X2, E, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_XY, F, ksize, std_c, cv.BORDER_DEFAULT);
     cv.GaussianBlur(I_Y2, G, ksize, std_c, cv.BORDER_DEFAULT);
-    let newImage = new cv.Mat(rows, cols, src.type());
+    // let newImage = new cv.Mat(rows, cols, src.type());
     for (var y = 0; y < rows; y++) {
         for (var x = 0; x < cols; x++) {
             let e = E.doublePtr(y, x)[0];
@@ -929,9 +948,14 @@ function generateDog({ msg, payload }) {
     //         image_data_aliasing[image_index + 3] = 255;
     //     }
     // }
-    const clampedArray = new ImageData(image_data_integral, imageWidth);
-    // let clampedArray = imageDataFromMat(I_X);
-    postMessage({ msg, payload: clampedArray });
+    const clampedArray = new ImageData(image_data_integral, newCol);
+    let newImage = cv.matFromImageData(clampedArray);
+    let finalMat = new cv.Mat();
+    let finalSize = new cv.Size(original_src.cols, original_src.rows);
+    // You can try more different parameters
+    cv.resize(newImage, finalMat, finalSize, 0, 0, cv.INTER_AREA);
+    const finalArray = new ImageData(new Uint8ClampedArray(finalMat.data), original_src.cols);
+    postMessage({ msg, payload: finalArray });
     I_X.delete();
     I_Y.delete();
     I_X2.delete();
@@ -941,6 +965,7 @@ function generateDog({ msg, payload }) {
     F.delete();
     G.delete();
     src.delete();
+    original_src.delete();
 }
 var loaded = false;
 function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
@@ -952,7 +977,6 @@ function waitForOpencv(callbackFn, waitTimeMs = 30000, stepTimeMs = 100) {
     const interval = setInterval(() => {
         const limitReached = timeSpentMs > waitTimeMs;
         if (cv.Mat || limitReached) {
-            console.log("time out!");
             clearInterval(interval);
             return callbackFn(!limitReached);
         }
@@ -999,5 +1023,3 @@ onmessage = function (e) {
             break;
     }
 };
-//REPEAT OJBECTS DUHHHH LIKE OMGG???
-//ADD OPTIONAL COLOR PALETTES FOR IMAGE GENERATION BASED ON ORIGINAL IMAGE 

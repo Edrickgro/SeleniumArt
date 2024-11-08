@@ -12,6 +12,21 @@ Feel free to fork this project and improve it. Please give credit :)
 
 [Project Website](https://edrickgro.github.io/ArtGen/)
 
+## Known Bugs
+
+Opening a file and then canceling it causes an exception
+
+OpenCV.js sometimes throws exceptions when its been active for too long (this has been bandaged by creating a new worker every
+certain number of frames)
+
+Maximizing all of DoG's variables at once cause it to output unexpected images (refresh to fix)
+
+Generate's most common color option sometimes defaults to red, blue, or green (no current workaround)
+
+Sometimes the object data gets corrupted and returns 0 whenever generate tries to use it (refresh to fix)
+
+Certain settings on the video function may cause it to not work (refresh if this happens)
+
 ## Difference of Gaussians
 The [difference of gaussians](https://en.wikipedia.org/wiki/Difference_of_Gaussians") algorithm is an algorithm used in image processing. There
 are many uses for it but my implementation is a rough implementation. Many art styles

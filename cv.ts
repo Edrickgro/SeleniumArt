@@ -32,10 +32,10 @@ class CV {
      * Then, we are going to call the 'load' event, as we've just 
      * implemented it so that the worker can capture it.
      */
+    
     load() {
       this._status = {}
       this.worker = new Worker(`worker.js`) // load worker
-  
       // Capture events and save [status, event] inside the _status object
       this.worker.onmessage = e => this._status[e.data.msg] = ['done', e]
       // this.worker.onerror = e => this._status[e.data.msg] = ['error', e]
@@ -53,7 +53,6 @@ class CV {
      * return a promise with the processed image.
      */
     imageProcessing(message, payload) {
-
       return this._dispatch({ msg: message, payload })
     }
   }

@@ -15,6 +15,7 @@ var dummyCanvas = <HTMLCanvasElement> document.getElementById("dummy-canvas");
 let ctx = canvas.getContext("2d");
 var dummyctx = dummyCanvas.getContext("2d");
 let fileElement = document.getElementById("file-input");
+let videoFileElement = document.getElementById("video-file-input");
 
 var hiddenCanvas = <HTMLCanvasElement>document.getElementById("hidden-canvas");
 var hiddenCanvasctx = hiddenCanvas.getContext("2d");
@@ -38,7 +39,6 @@ fileElement.addEventListener("change", (e)=>{
     reader.onload = function(event){
         let img = new Image;
         img.onload = function(){
-
             dummyCanvas.width = img.width;
             dummyCanvas.height = img.height;
             canvas.width = img.width;
@@ -49,15 +49,10 @@ fileElement.addEventListener("change", (e)=>{
             hiddenCanvas.width = img.width;
             hiddenCanvas.height = img.height;
 
-
             hiddenCanvas.getContext("2d").drawImage(img,0,0);
             dummyctx.drawImage(img,0,0);
 
-
-
             ctx.drawImage(img,0,0, canvas.width, canvas.height);
-
-
 
             canvas.style.animationPlayState = "paused";
 
@@ -68,9 +63,40 @@ fileElement.addEventListener("change", (e)=>{
             unmutableData = unmutableImageData.data;
                              
         }
+
+        // img.addEventListener("onload", ()=>setupCanvas(img), false);
         let result: string = event.target.result as string;
         img.src = result;
     }      
 
 
 });
+
+
+function videoCanvasSet(video){
+
+    dummyCanvas.width = video.videoWidth;
+    dummyCanvas.height = video.videoHeight;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    image_width = video.videoWidth;
+    image_height = video.videoHeight;
+
+    hiddenCanvas.width = video.videoWidth;
+    hiddenCanvas.height = video.videoHeight;
+    
+}
+
+async function setVideoFrame(videoFrame){
+
+    hiddenCanvas.getContext("2d").drawImage(videoFrame,0,0);
+    dummyctx.drawImage(videoFrame,0,0);
+    ctx.drawImage(videoFrame,0,0, canvas.width, canvas.height);
+
+    dummyImageData = dummyctx.getImageData(0,0,dummyCanvas.width, dummyCanvas.height);
+    dummyData = dummyImageData.data;
+
+    unmutableImageData = structuredClone(dummyImageData);
+    unmutableData = unmutableImageData.data;
+                     
+}

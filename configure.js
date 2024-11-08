@@ -1,3 +1,12 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 let canvases = document.querySelectorAll("canvas");
 canvases.forEach((canvas) => {
     let ctx = canvas.getContext("2d");
@@ -10,6 +19,7 @@ var dummyCanvas = document.getElementById("dummy-canvas");
 let ctx = canvas.getContext("2d");
 var dummyctx = dummyCanvas.getContext("2d");
 let fileElement = document.getElementById("file-input");
+let videoFileElement = document.getElementById("video-file-input");
 var hiddenCanvas = document.getElementById("hidden-canvas");
 var hiddenCanvasctx = hiddenCanvas.getContext("2d");
 var image_width = 0;
@@ -42,7 +52,29 @@ fileElement.addEventListener("change", (e) => {
             unmutableImageData = structuredClone(dummyImageData);
             unmutableData = unmutableImageData.data;
         };
+        // img.addEventListener("onload", ()=>setupCanvas(img), false);
         let result = event.target.result;
         img.src = result;
     };
 });
+function videoCanvasSet(video) {
+    dummyCanvas.width = video.videoWidth;
+    dummyCanvas.height = video.videoHeight;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    image_width = video.videoWidth;
+    image_height = video.videoHeight;
+    hiddenCanvas.width = video.videoWidth;
+    hiddenCanvas.height = video.videoHeight;
+}
+function setVideoFrame(videoFrame) {
+    return __awaiter(this, void 0, void 0, function* () {
+        hiddenCanvas.getContext("2d").drawImage(videoFrame, 0, 0);
+        dummyctx.drawImage(videoFrame, 0, 0);
+        ctx.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
+        dummyImageData = dummyctx.getImageData(0, 0, dummyCanvas.width, dummyCanvas.height);
+        dummyData = dummyImageData.data;
+        unmutableImageData = structuredClone(dummyImageData);
+        unmutableData = unmutableImageData.data;
+    });
+}

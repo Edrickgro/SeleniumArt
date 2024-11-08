@@ -1,12 +1,6 @@
 //    @ts-nocheck
 
-   //add draggable event on main canvas
-   //grab x_bound and y_bound boundaries of selected square, make of copy of image data representing that square
-   //draw rectangle to image showing visual feedback
-   //have every algorithm point to selected square image data except for objects which points to canny
-   //with generate algorithm, run through original image, and if current x,y is within bounds of x,y bound, use
-   //selected square data instead
-   //when user selects another region, updates all variables, only one square at a time
+   let loader = document.getElementById("loader");
    let cannyButton = <HTMLButtonElement> document.getElementById("canny-button");
    let cannyCanvas = <HTMLCanvasElement> document.getElementById("canny-canvas");
    let cannySelectSource = <HTMLSelectElement> document.getElementById("canny-select-source");
@@ -20,6 +14,7 @@
    let kmeansButton = <HTMLButtonElement> document.getElementById("kmeans-button");
    let kmeansCanvas = <HTMLCanvasElement> document.getElementById("kmeans-canvas");
    let kmeansSelectSource = <HTMLSelectElement> document.getElementById("kmeans-select-source");
+   
 
    let objectsButton = <HTMLButtonElement> document.getElementById("objects-detect-button");
    let objectsCanvas = <HTMLCanvasElement> document.getElementById("objects-canvas");
@@ -41,18 +36,33 @@
    let dogstdmInput = <HTMLInputElement> document.getElementById("dog-stdm-input");
    let dogColorType = <HTMLSelectElement> document.getElementById("dog-color-type");
    let dogSelectSource = <HTMLSelectElement> document.getElementById("dog-select-source");
+   let dogFactor = <HTMLInputElement> document.getElementById("dog-factor-input");
 
+   let videoCanvas = document.getElementById("videoCanvas");
+   let videoDogCheck = document.getElementById("video-dog-checkbox");
+   let videoLBPCheck = document.getElementById("video-lbp-checkbox");
+   let videoObjectsCheck = document.getElementById("video-objects-checkbox");
+   let videoStartButton = document.getElementById("video-start");
+   let videoPauseButton = document.getElementById("video-pause");
+   let videoEndButton = document.getElementById("video-stop");
+   let videoProgressBar = document.getElementById("video-progress-bar");
+   let videoProgressBarLabel = document.getElementById("video-progress-bar-label");
+   let videoStartTimeElement = document.getElementById("video-time-start");
+   let videoStepTimeElement = document.getElementById("video-time-step");
+   let videoPaused = false;
 
    let generateButton = <HTMLButtonElement> document.getElementById("generate-button");
    let generateCanvas = <HTMLCanvasElement> document.getElementById("generate-canvas");
 
    let kmeansNumColors = <HTMLInputElement> document.getElementById("kmeans-num-colors");
+   let kmeansFactor = <HTMLInputElement> document.getElementById("kmeans-factor-input");
 
    let varianceInput = <HTMLInputElement> document.getElementById("variance-input");
    let numColorBoxes = <HTMLInputElement> document.getElementById("num-color-boxes");
    let objectPixelThreshold = <HTMLInputElement> document.getElementById("object-pixel-threshold");
    let factor = <HTMLInputElement> document.getElementById("factor");
    let emptyFill = <HTMLSelectElement> document.getElementById("generate-empty-fill");
+   let colorFill = <HTMLSelectElement> document.getElementById("generate-color-fill");
  
    let settings_valid = true;
    
@@ -70,12 +80,152 @@
    let kButton = <HTMLButtonElement> document.getElementById("k-button");
 
    var objects_identified = [];
-
-
    const cv = new CV();
 
+   let videoTime = 0;
+   let videoStep = 0;
+   let videoWidth = 0;
+   let videoHeight = 0;
+
+  
+  
+
+   videoFileElement.addEventListener("change", (e)=>{
+    let videoElement = document.createElement("VIDEO");
+    videoElement.id = "video";
+    document.body.appendChild(videoElement);
+    let media = URL.createObjectURL((<HTMLInputElement>e.target).files[0]);
+    (<HTMLVideoElement>videoElement).src = media;
+    videoElement.style.display = "none";
+
+    videoElement.addEventListener('loadeddata', function() {
+        this.currentTime = 0;
+        videoWidth = this.videoWidth;
+        videoHeight = this.videoHeight;
+        
+        videoCanvasSet(videoElement);
+        setVideoFrame(videoElement);
+    });
+
+    });
+   
+   let videobutton = document.getElementById("video-start");
+   videobutton.addEventListener("click", function(){
+    videoTime = parseFloat(videoStartTimeElement.value);
+    videoStep = parseFloat(videoStepTimeElement.value);
+    loader.style.animationPlayState = "running";
+    videoClick();
+   }
+
+   , false);
+
+   videoPauseButton.addEventListener("click", ()=>{
+    if(videoPaused == false){
+        videoPauseButton.innerHTML = "Resume";
+        loader.style.animationPlayState = "paused";
+        videoPaused = true;
+    }else{
+        videoPauseButton.innerHTML = "Pause";
+        loader.style.animationPlayState = "running";
+        videoPaused = false;
+        videoClick();
+    }
+
+    }, false);
+
+   let mediaRecorder = recordSetup(generateCanvas);
+   mediaRecorder.pause();
+
+   let framesProcessed = 0;
+
+   async function videoClick(){
+       if(videoTime <= video.duration){
+           videoTime+=videoStep;  
+           video.currentTime = videoTime;
+           await setVideoFrame(video);
+           if(videoDogCheck.checked) await dogClick();
+           
+           if(videoObjectsCheck.checked){
+            await cannyClick();
+            await objectsClick();
+           } 
+           await kmeansClick();
+           if(videoLBPCheck.checked) await LBPClick();
+
+           await resumeMedia();
+           await generateClick();
+           
+           await requestVideoFrame();
+           await pauseMedia();
+
+           framesProcessed++;
+
+           if(framesProcessed % 20 == 0){
+            workerLoaded = false;
+            console.log("LOADED NEW WORKER");
+           }
+
+           if(!videoPaused){
+                videoClick();
+           }
+           videoProgressBar.value = (videoTime/video.duration)*100;
+           videoProgressBarLabel.innerHTML = "Progress: " + Math.min(Math.round((videoTime/video.duration)*100),100) + "%";
+           //capture frame into blob here
+       }else{
+           console.log("FINISHED");
+           mediaRecorder.stop();
+       }
+   }
+
+   async function resumeMedia(){
+    mediaRecorder.resume();
+   }
+
+   async function pauseMedia(){
+    mediaRecorder.pause();
+
+   }
+   videoEndButton.addEventListener("click", ()=>{
+    videoPaused = true;
+    loader.style.animationPlayState = "paused";
+    mediaRecorder.stop();
+   }, false);
+
+ 
+
+   function recordSetup(canvas){
+        let recordedChunks = [];
+        let stream = canvas.captureStream();
+        let mediaRecorder = new MediaRecorder(stream, {
+            mimeType: "video/webm;codecs:vp9"
+            // mimeType: "video/webm;codecs=opus,vp9"
+        });
+        mediaRecorder.start();
+        mediaRecorder.ondataavailable = function (event) {
+            recordedChunks.push(event.data);
+        }
+        mediaRecorder.onstop = function (event) {
+            loader.style.animationPlayState = "paused";
+            let blob = new Blob(recordedChunks, {type: "video/webm" });
+            let url = URL.createObjectURL(blob);
+            videoTime = 0;
+            var videoOutput = document.createElement('VIDEO');
+            videoOutput.controls = true;
+            
+            let videoContainer = document.getElementById("video-container");
+            videoContainer.style.display = "block";
+            videoContainer.appendChild(videoOutput);
+            videoOutput.setAttribute('src', url);
+        }
+        return mediaRecorder;
+   }
+
+   async function requestVideoFrame(){
+    mediaRecorder.requestData();
+   }
 
 
+   let workerLoaded = false;
    objectsButton.addEventListener("click", () => objectsClick(), false); 
 
    async function objectsClick(){
@@ -88,7 +238,7 @@
         objectsCanvas.style.animationPlayState = "running";
         
         const imageData = cannyCanvas.getContext("2d").getImageData(0,0,cannyCanvas.width, cannyCanvas.height).data;
-        await cv.load();
+        if(!workerLoaded) await cv.load();
         const processedImage = await 
         cv.imageProcessing("fill", [imageData, image_width, objects_distance_threshold, objects_detect_distance_threshold, objects_detect_pixel_threshold, strict_value]);
 
@@ -100,6 +250,8 @@
         objectsCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, objectsCanvas.width, objectsCanvas.height);
 
         objects_identified = processedImage.data.payload[1];
+
+        workerLoaded = true;
 
         objectsCanvas.style.animationPlayState = "paused";
 
@@ -120,25 +272,24 @@
         let o = parseFloat(dogoInput.value);
         let e = parseFloat(dogeInput.value);
         let colorType = dogColorType.value == "bw" ? 1:0;
-
+        let dog_factor = parseFloat(dogFactor.value);
+        
         let image = 0;
 
         if(dogSelectSource.value == "kMeans"){
-
             image = kmeansCanvas.getContext("2d").getImageData(0,0, kmeansCanvas.width, kmeansCanvas.height);
         }else if(dogSelectSource.value == "self"){
-            image = dogCanvas.getContext("2d").getImageData(0,0, dogSelectSource.width, dogSelectSource.height);
+            image = dogCanvas.getContext("2d").getImageData(0,0, dogCanvas.width, dogCanvas.height);
         }
         else{
-
             image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
         }
 
-        await cv.load();
+        if(!workerLoaded) await cv.load();
 
         // Processing image
         
-        const processedImage = await cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e, std_m, colorType]);
+        const processedImage = await cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e, std_m, colorType, dog_factor]);
  
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
@@ -146,6 +297,7 @@
         dogCanvas.width = image_width; 
 
         dogCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, dogCanvas.width, dogCanvas.height);
+        workerLoaded = true;
 
         dogCanvas.style.animationPlayState = "paused";
 
@@ -153,12 +305,12 @@
    }
  
 
-   kmeansButton.addEventListener("click", () => kmeansClick(), false);
+   kmeansButton.addEventListener("click", () => kmeansClick(false), false);
 
-    async function kmeansClick(){
-
+    async function kmeansClick(isVideo){
 
         kmeans_num_colors = parseInt(kmeansNumColors.value);
+        kmeans_factor = parseFloat(kmeansFactor.value);
         
 
         kmeansCanvas.style.animationPlayState = "running";
@@ -171,17 +323,15 @@
             image = kmeansCanvas.getContext("2d").getImageData(0,0, kmeansCanvas.width, kmeansCanvas.height);
         }
         else{
-
             image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
-
         }
 
         // const image = dummyctx.getImageData(0,0, dummyCanvas.width, hiddenCanvas.height);
 
         // Load the model
-        await cv.load();
+        if(!workerLoaded) await cv.load();
         // Processing image
-        const processedImage = await cv.imageProcessing("kmeans", [image, kmeans_num_colors]);
+        const processedImage = await cv.imageProcessing("kmeans", [image, kmeans_num_colors, kmeans_factor]);
 
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
@@ -190,9 +340,9 @@
 
         kmeansCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, kmeansCanvas.width, kmeansCanvas.height);
 
+        workerLoaded = true;
+
         kmeansCanvas.style.animationPlayState = "paused";
-        
-        // Render the processed image to the canvas
         
     }
 
@@ -204,10 +354,9 @@
         if(min_set < max_set){
             let image = 0;
 
+            
             if(cannySelectSource.value == "kMeans"){
-
                 image = kmeansCanvas.getContext("2d").getImageData(0,0, kmeansCanvas.width, kmeansCanvas.height);
-
             }else if(cannySelectSource.value == "dog"){
                 image = dogCanvas.getContext("2d").getImageData(0,0, dogCanvas.width, dogCanvas.height);
             }else if(cannySelectSource.value == "self"){
@@ -221,15 +370,17 @@
 
             // const image = hiddenCanvasctx.getImageData(0,0, hiddenCanvas.width, hiddenCanvas.height);
             // const image = dummyctx.getImageData(0,0, dummyCanvas.width, hiddenCanvas.height);
-            await cv.load(); 
+            if(!workerLoaded) await cv.load(); 
             const processedImage = await cv.imageProcessing("canny", [image, min_set, max_set]);
 
             dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
             cannyCanvas.height = image_height; 
-            cannyCanvas.width = image_width; 
+            cannyCanvas.width = image_width;
 
             cannyCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, cannyCanvas.width, cannyCanvas.height);
+
+            workerLoaded = true;
 
             cannyCanvas.style.animationPlayState = "paused";
 
@@ -250,14 +401,23 @@
         //const objects_identified;
         const cannyData = cannyCanvas.getContext("2d").getImageData(0,0,cannyCanvas.width, cannyCanvas.height).data;
         const LBPData = LBPCanvas.getContext("2d").getImageData(0,0,LBPCanvas.width, LBPCanvas.height).data;
-        const kMeansData = kmeansCanvas.getContext("2d").getImageData(0,0,kmeansCanvas.width, kmeansCanvas.height).data;
+
+        let colorData;
+
+        if(colorFill.value == "kmeans"){
+            colorData = kmeansCanvas.getContext("2d").getImageData(0,0,kmeansCanvas.width, kmeansCanvas.height).data;
+        }else{
+            colorData = dogCanvas.getContext("2d").getImageData(0,0,dogCanvas.width, dogCanvas.height).data;  
+        }
+        // const DoGData = dogCanvas.getContext("2d").getImageData(0,0,dogCanvas.width, dogCanvas.height).data;
+        // const kMeansData = kmeansCanvas.getContext("2d").getImageData(0,0,kmeansCanvas.width, kmeansCanvas.height).data;
         
-        await cv.load();
+        if(!workerLoaded) await cv.load();
 
         const processedImage = await 
         cv.imageProcessing("generate",
 
-            [cannyData, LBPData, kMeansData, 
+            [cannyData, LBPData, colorData, 
             objects_identified, allow_overlap, is_repeated, object_variance, image_width, texture_threshold, 
             object_pixel_threshold, factor_value, empty_fill_value]);
 
@@ -269,13 +429,16 @@
 
         generateCanvas.getContext("2d").drawImage(dummyctx.canvas, 0, 0, generateCanvas.width, generateCanvas.height);
 
+        workerLoaded = true;
+
 
         generateCanvas.style.animationPlayState = "paused";
 
 
 
     }
- 
+
+   
 
    cannyMaxSlider.addEventListener("input", (e) =>{
     let num = parseInt(e.target.value)/10;
