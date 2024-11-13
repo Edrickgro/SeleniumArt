@@ -197,7 +197,7 @@
         let recordedChunks = [];
         let stream = canvas.captureStream();
         let mediaRecorder = new MediaRecorder(stream, {
-            mimeType: "video/webm;codecs:vp9"
+            mimeType: "video/webm;codecs:vp8"
             // mimeType: "video/webm;codecs=opus,vp9"
         });
         mediaRecorder.start();
