@@ -192,6 +192,12 @@
    }, false);
 
  
+   function resetWorker(){
+    if(framesProcessed % 20 == 0){
+        workerLoaded = false;
+        console.log("LOADED NEW WORKER");
+       }
+   }
 
    function recordSetup(canvas){
         let recordedChunks = [];
@@ -241,7 +247,7 @@
         if(!workerLoaded) await cv.load();
         const processedImage = await 
         cv.imageProcessing("fill", [imageData, image_width, objects_distance_threshold, objects_detect_distance_threshold, objects_detect_pixel_threshold, strict_value]);
-
+        framesProcessed++;
         dummyctx.putImageData(processedImage.data.payload[0], 0, 0);
 
         objectsCanvas.height = image_height; 
@@ -254,6 +260,8 @@
         workerLoaded = true;
 
         objectsCanvas.style.animationPlayState = "paused";
+
+        resetWorker();
 
 
    }
@@ -288,7 +296,7 @@
         if(!workerLoaded) await cv.load();
 
         // Processing image
-        
+        framesProcessed++;
         const processedImage = await cv.imageProcessing("dog", [image, image_width, std_e, std_c, k, t, o, e, std_m, colorType, dog_factor]);
  
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
@@ -300,6 +308,8 @@
         workerLoaded = true;
 
         dogCanvas.style.animationPlayState = "paused";
+
+        resetWorker();
 
 
    }
@@ -333,6 +343,8 @@
         // Processing image
         const processedImage = await cv.imageProcessing("kmeans", [image, kmeans_num_colors, kmeans_factor]);
 
+        framesProcessed++; 
+
         dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
         kmeansCanvas.height = image_height; 
@@ -343,6 +355,8 @@
         workerLoaded = true;
 
         kmeansCanvas.style.animationPlayState = "paused";
+
+        resetWorker();
         
     }
 
@@ -373,6 +387,8 @@
             if(!workerLoaded) await cv.load(); 
             const processedImage = await cv.imageProcessing("canny", [image, min_set, max_set]);
 
+            framesProcessed++;
+
             dummyctx.putImageData(processedImage.data.payload, 0, 0);
 
             cannyCanvas.height = image_height; 
@@ -383,6 +399,8 @@
             workerLoaded = true;
 
             cannyCanvas.style.animationPlayState = "paused";
+
+            resetWorker(); 
 
         }
         
@@ -421,6 +439,7 @@
             objects_identified, allow_overlap, is_repeated, object_variance, image_width, texture_threshold, 
             object_pixel_threshold, factor_value, empty_fill_value]);
 
+        framesProcessed++;
 
         dummyctx.putImageData(processedImage.data.payload[0], 0, 0);
 
@@ -435,6 +454,7 @@
         generateCanvas.style.animationPlayState = "paused";
 
 
+        resetWorker();
 
     }
 
