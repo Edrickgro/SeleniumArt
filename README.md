@@ -1,6 +1,6 @@
 # Art Gen/ Resilium
 
-A project made during my free time that allows users to make art by uploading images and editing them
+A JavaScript project that allow users to make art by uploading images and editing them
 through various algorithms using vanilla JS and OpenCv. The "dog" algorithm is based on a research paper (linked below)
 describing an extended difference of gaussians algorithm that inspired me to make this project.
 
