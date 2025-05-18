@@ -10,7 +10,7 @@ Feel free to fork this project and improve it. Please give credit :)
 
 [Northwestern Paper](https://users.cs.northwestern.edu/~sco590/winnemoeller-cag2012.pdf)
 
-[Project Website]([https://edrickgro.github.io/ArtGen/](https://edrickgro.github.io/SeleniumArt/))
+[Project Website](https://edrickgro.github.io/SeleniumArt/)
 
 ## Known Bugs
 
